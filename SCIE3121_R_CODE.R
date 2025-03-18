@@ -106,3 +106,20 @@ plot(Loc6$YEAR, Loc6$meanAbundance, type = "l", xlab = "time", ylab = "abundance
 title(main = "Location 6, (46.038317)")
 plot(Loc7$YEAR, Loc7$meanAbundance, type = "l", xlab = "time", ylab = "abundance")
 title(main = "Location 7, (46.04125)")
+
+
+##18/03 - RivFishTIME dataset ---- 
+fishData <- read.csv("data/RivFishTIME_DATA.csv")
+
+speciesFishData <- table(fishData$Species)
+G11473A_SalmoDat <- filter(fishData, TimeSeriesID == "G11473" & Year > 1979 & Species == "Salmo trutta")
+
+G11473A_SalmoDat <- select(G11473A_SalmoDat, !TimeSeriesID & !SurveyID & !Species)
+
+salmoDataTable <- data.table(G11473A_SalmoDat) |> 
+    group_by(Year) |> 
+    summarise(Abunance = mean(Abundance))
+
+pdf("plots/Salmo_trutta.pdf", width = 6, height = 5)
+plot(salmoDataTable$Year, salmoDataTable$Abunance, type = "l", xlab = "time", ylab = "abundance")
+dev.off()
