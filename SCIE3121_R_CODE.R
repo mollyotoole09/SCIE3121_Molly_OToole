@@ -52,3 +52,57 @@ y_vals_sh <- rainbow_bay[272:301, 1]
 x_vals_sh <- rainbow_bay[272:301, 10]
 plot(x_vals_sh, y_vals_sh, type = 'l', xlab = 'time', ylab = 'abundance')
 title(main = 'Scaphiopus holbrookii')
+
+
+##4/03 - Second Trial ---- 
+library(data.table)
+library("tidyverse")
+zooplanktonData <- read.csv("data/raw_data_253.csv") #load zooplankton data from BioTIME
+
+speciesData <- data.table(zooplanktonData$GENUS_SPECIES)  #create a new data table with only genus information
+summarySpeciesData <- table(zooplanktonData$GENUS_SPECIES) #create a summary table that shows how many records of each species are found in the dataset 
+
+#Because there are 133 different species in this data set we want to only include the best ones
+sortedSpeciesData <- speciesData[, .N, by = "V1"][order(-N)]
+print(sortedSpeciesData)
+
+#Copepod nauplii (1659), Polyarthra vulgaris (1469), Keratella cochlearis (1350), Polyarthra remata
+#(1314), Kellicottia longispina (1218), Bosminidae (1208), Diacyclops thomasi (1197), 
+#Gastropus stylifer (988), 	Conochilus sp (971) and Keratella earlinae (938) were the top 10 species
+#with the most records. 
+
+######COPEPOD NAUPLII#################################### ----
+copepodNauplii <- filter(zooplanktonData, GENUS_SPECIES == "Copepod nauplii")
+copepodNauplii <- select(copepodNauplii, !GENUS_SPECIES)
+copepodNauplii
+
+datatableCN <- data.table(copepodNauplii)
+
+timeSeriesData <- datatableCN[, .(meanAbundance = mean(ABUNDANCE, na.rm = TRUE)), by = .(YEAR, LATITUDE)]
+timeSeriesData
+
+L1 <- table(timeSeriesData$LATITUDE)
+L1 
+
+Loc1 <- timeSeriesData[LATITUDE == 46.00275]
+Loc2 <- timeSeriesData[LATITUDE == 46.007583]
+Loc3 <- timeSeriesData[LATITUDE == 46.007733]                    
+Loc4 <- timeSeriesData[LATITUDE == 46.021067]
+Loc5 <- timeSeriesData[LATITUDE == 46.029267]
+Loc6 <- timeSeriesData[LATITUDE == 46.038317]
+Loc7 <- timeSeriesData[LATITUDE == 46.04125]
+
+plot(Loc1$YEAR, Loc1$meanAbundance, type = "l", xlab = "time", ylab = "abundance")
+title(main = "Location 1, (46.00275)")
+plot(Loc2$YEAR, Loc2$meanAbundance, type = "l", xlab = "time", ylab = "abundance")
+title(main = "Location 2, (46.007583)")
+plot(Loc3$YEAR, Loc3$meanAbundance, type = "l", xlab = "time", ylab = "abundance")
+title(main = "Location 3, (46.007733)")
+plot(Loc4$YEAR, Loc4$meanAbundance, type = "l", xlab = "time", ylab = "abundance")
+title(main = "Location 4, (46.021067)")
+plot(Loc5$YEAR, Loc5$meanAbundance, type = "l", xlab = "time", ylab = "abundance")
+title(main = "Location 5, (46.029267)")
+plot(Loc6$YEAR, Loc6$meanAbundance, type = "l", xlab = "time", ylab = "abundance")
+title(main = "Location 6, (46.038317)")
+plot(Loc7$YEAR, Loc7$meanAbundance, type = "l", xlab = "time", ylab = "abundance")
+title(main = "Location 7, (46.04125)")
