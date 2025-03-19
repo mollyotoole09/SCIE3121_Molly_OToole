@@ -124,6 +124,7 @@ salmoDataTable <- data.table(G11473A_SalmoDat) |>
 
 pdf("plots/Salmo_trutta.pdf", width = 6, height = 5)
 plot(salmoDataTable$Year, salmoDataTable$Abunance, type = "l", xlab = "time", ylab = "abundance")
+title(main = "Salmo trutta - G11473")
 dev.off()
 
 ##19/03
@@ -138,6 +139,7 @@ salmoDataTable2 <- data.table(G10988A_SalmoDat) |>
 
 pdf("plots/Salmo_trutta_2.pdf", width = 6, height = 5)
 plot(salmoDataTable2$Year, salmoDataTable2$Abunance, type = "l", xlab = "time", ylab = "abundance")
+title(main = "Salmo trutta - G10988")
 dev.off()
 
 
@@ -152,6 +154,7 @@ salmoDataTable3 <- data.table(G10538A_SalmoDat) |>
 
 pdf("plots/Salmo_salar.pdf", width = 6, height = 5)
 plot(salmoDataTable3$Year, salmoDataTable3$Abunance, type = "l", xlab = "time", ylab = "abundance")
+title(main = "Salmo salar - G10538")
 dev.off()
 
 #Popn 4 - Salmo salar 
@@ -165,4 +168,5 @@ salmoDataTable4 <- data.table(G10120A_SalmoDat) |>
 
 pdf("plots/Salmo_salar_2.pdf", width = 6, height = 5)
 plot(salmoDataTable4$Year, salmoDataTable4$Abunance, type = "l", xlab = "time", ylab = "abundance")
+title(main = "Salmo salar - G10120")
 dev.off()
