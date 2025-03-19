@@ -112,6 +112,8 @@ title(main = "Location 7, (46.04125)")
 fishData <- read.csv("data/RivFishTIME_DATA.csv")
 
 speciesFishData <- table(fishData$Species)
+
+##Popn 1 - Salmo trutta
 G11473A_SalmoDat <- filter(fishData, TimeSeriesID == "G11473" & Year > 1979 & Species == "Salmo trutta")
 
 G11473A_SalmoDat <- select(G11473A_SalmoDat, !TimeSeriesID & !SurveyID & !Species)
@@ -122,4 +124,45 @@ salmoDataTable <- data.table(G11473A_SalmoDat) |>
 
 pdf("plots/Salmo_trutta.pdf", width = 6, height = 5)
 plot(salmoDataTable$Year, salmoDataTable$Abunance, type = "l", xlab = "time", ylab = "abundance")
+dev.off()
+
+##19/03
+##Popn 2 - Salmo trutta 
+G10988A_SalmoDat <- filter(fishData, TimeSeriesID == "G10988" & Year > 1982 & Species == "Salmo trutta")
+
+G10988A_SalmoDat <- select(G10988A_SalmoDat, !TimeSeriesID & !SurveyID & !Species)
+
+salmoDataTable2 <- data.table(G10988A_SalmoDat) |> 
+    group_by(Year) |> 
+    summarise(Abunance = mean(Abundance))
+
+pdf("plots/Salmo_trutta_2.pdf", width = 6, height = 5)
+plot(salmoDataTable2$Year, salmoDataTable2$Abunance, type = "l", xlab = "time", ylab = "abundance")
+dev.off()
+
+
+##Popn 3 - Salmo salar 
+G10538A_SalmoDat <- filter(fishData, TimeSeriesID == "G10538" & Year > 1969 & Year < 2008 & Species == "Salmo salar")
+
+G10538A_SalmoDat <- select(G10538A_SalmoDat, !TimeSeriesID & !SurveyID & !Species)
+
+salmoDataTable3 <- data.table(G10538A_SalmoDat) |> 
+    group_by(Year) |> 
+    summarise(Abunance = mean(Abundance))
+
+pdf("plots/Salmo_salar.pdf", width = 6, height = 5)
+plot(salmoDataTable3$Year, salmoDataTable3$Abunance, type = "l", xlab = "time", ylab = "abundance")
+dev.off()
+
+#Popn 4 - Salmo salar 
+G10120A_SalmoDat <- filter(fishData, TimeSeriesID == "G10120" & Year > 1982 & Species == "Salmo salar")
+
+G10120A_SalmoDat <- select(G10120_SalmoDat, !TimeSeriesID & !SurveyID & !Species)
+
+salmoDataTable4 <- data.table(G10120A_SalmoDat) |> 
+    group_by(Year) |> 
+    summarise(Abunance = mean(Abundance))
+
+pdf("plots/Salmo_salar_2.pdf", width = 6, height = 5)
+plot(salmoDataTable4$Year, salmoDataTable4$Abunance, type = "l", xlab = "time", ylab = "abundance")
 dev.off()
