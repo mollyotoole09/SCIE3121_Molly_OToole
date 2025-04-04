@@ -113,7 +113,7 @@ fishData <- read.csv("data/RivFishTIME_DATA.csv")
 
 speciesFishData <- table(fishData$Species)
 
-##Popn 1 - Salmo trutta
+##Popn 1 - Salmo trutta - 39 consecutive years
 G11473A_SalmoDat <- filter(fishData, TimeSeriesID == "G11473" & Year > 1979 & Species == "Salmo trutta")
 
 G11473A_SalmoDat <- select(G11473A_SalmoDat, !TimeSeriesID & !SurveyID & !Species)
@@ -127,8 +127,9 @@ plot(salmoDataTable$Year, salmoDataTable$Abunance, type = "l", xlab = "time", yl
 title(main = "Salmo trutta - G11473")
 dev.off()
 
-##19/03
-##Popn 2 - Salmo trutta 
+
+##19/03 -----
+##Popn 2 - Salmo trutta - 36 consecutive years
 G10988A_SalmoDat <- filter(fishData, TimeSeriesID == "G10988" & Year > 1982 & Species == "Salmo trutta")
 
 G10988A_SalmoDat <- select(G10988A_SalmoDat, !TimeSeriesID & !SurveyID & !Species)
@@ -142,8 +143,7 @@ plot(salmoDataTable2$Year, salmoDataTable2$Abunance, type = "l", xlab = "time", 
 title(main = "Salmo trutta - G10988")
 dev.off()
 
-
-##Popn 3 - Salmo salar 
+##Popn 3 - Salmo salar - 38 consecutive years
 G10538A_SalmoDat <- filter(fishData, TimeSeriesID == "G10538" & Year > 1969 & Year < 2008 & Species == "Salmo salar")
 
 G10538A_SalmoDat <- select(G10538A_SalmoDat, !TimeSeriesID & !SurveyID & !Species)
@@ -157,7 +157,7 @@ plot(salmoDataTable3$Year, salmoDataTable3$Abunance, type = "l", xlab = "time", 
 title(main = "Salmo salar - G10538")
 dev.off()
 
-#Popn 4 - Salmo salar 
+#Popn 4 - Salmo salar - 36 consecutive years
 G10120A_SalmoDat <- filter(fishData, TimeSeriesID == "G10120" & Year > 1982 & Species == "Salmo salar")
 
 G10120A_SalmoDat <- select(G10120_SalmoDat, !TimeSeriesID & !SurveyID & !Species)
@@ -170,3 +170,76 @@ pdf("plots/Salmo_salar_2.pdf", width = 6, height = 5)
 plot(salmoDataTable4$Year, salmoDataTable4$Abunance, type = "l", xlab = "time", ylab = "abundance")
 title(main = "Salmo salar - G10120")
 dev.off()
+
+
+##2/04 - Climate data ---- 
+
+library(readxl)
+library(tidyverse)
+library(patchwork)
+
+##ERA data - CCKP
+
+backgroundWeather <- read_excel("data/sweden_background_temp.xlsx", col_names = TRUE)
+
+tempDat <- backgroundWeather |>
+  pivot_longer(cols = everything(), names_to = "Date", values_to = "Temperature") |> 
+  separate(Date, c("Year", "Month"), sep = "-") |> 
+  group_by(Month) |> 
+  filter(!is.na(Year) & !is.na(Month)) |> 
+  summarise(mean_monthly_temp = mean(Temperature)) 
+
+ggplot(tempDat) + 
+    geom_point(aes(Month, mean_monthly_temp))
+
+
+##CRU data for mean, max and min monthly temp - CCKP
+
+cruMonthlyData <- read_excel("data/monthly_cru_data.xlsx", col_names = TRUE)
+
+baselineCruDat <- cruMonthlyData |> 
+    pivot_longer(!name, names_to = "Date", values_to = "Temperature") |> 
+    separate(Date, c("Year", "Month"), sep = "-") |> 
+    group_by(Month, name) |> 
+    summarise(avg_temp = mean(Temperature))
+
+
+tempPlot <- ggplot(baselineCruDat) + 
+        geom_line(mapping = aes(Month, avg_temp, 
+                                colour = name, group = name))
+
+ggsave(filename = "plots/temp_baseline_plot.pdf", plot = tempPlot, width = 5, height = 6)
+
+
+
+
+###TESTS ----
+
+##ERA5 data - GRIB
+
+install.packages("terra")   # For handling raster data
+install.packages("ncdf4")   # For NetCDF support (sometimes needed)
+library(ncdf4)
+library(terra)
+
+era5dat <- terra::rast("data/era5Dat.grib")
+
+print(era5dat)
+names(era5dat)
+terra::ext(era5dat)
+terra::crs(era5dat)
+
+point <- data.frame(x = 11.44062, y = 58.90116)
+temp_value <- terra::extract(era5dat, point)
+print(temp_value)
+
+df <- as.data.frame(era5dat, xy = TRUE)
+head(df)
+
+time(era5dat)
+
+
+##ERA5 data - nc
+
+era5datNC <- terra::rast("data/era5Dat.nc")
+print(era5datNC)
