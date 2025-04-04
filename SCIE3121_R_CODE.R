@@ -206,7 +206,7 @@ baselineCruDat <- cruMonthlyData |>
 
 tempPlot <- ggplot(baselineCruDat) + 
                 geom_line(mapping = aes(Month, avg_temp, colour = name, group = name)) + 
-                theme_bw()
+                theme_linedraw()
 
 ggsave(filename = "plots/temp_baseline_plot.pdf", plot = tempPlot, width = 5, height = 6)
 
