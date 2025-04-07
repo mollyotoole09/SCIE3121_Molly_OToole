@@ -54,7 +54,7 @@ plot(x_vals_sh, y_vals_sh, type = 'l', xlab = 'time', ylab = 'abundance')
 title(main = 'Scaphiopus holbrookii')
 
 
-##4/03 - Second Trial ---- 
+##4/03 - Second Trial at BioTIME ---- 
 library(data.table)
 library("tidyverse")
 zooplanktonData <- read.csv("data/raw_data_253.csv") #load zooplankton data from BioTIME
@@ -128,7 +128,7 @@ title(main = "Salmo trutta - G11473")
 dev.off()
 
 
-##19/03 -----
+##19/03 - Further RivFishTIME analysis -----
 ##Popn 2 - Salmo trutta - 36 consecutive years
 G10988A_SalmoDat <- filter(fishData, TimeSeriesID == "G10988" & Year > 1982 & Species == "Salmo trutta")
 
@@ -172,13 +172,14 @@ title(main = "Salmo salar - G10120")
 dev.off()
 
 
-##2/04 - Climate data ---- 
+##2/04 - Climate data analysis ---- 
 
 library(readxl)
 library(tidyverse)
 library(patchwork)
 
-##ERA data - CCKP
+#ERA data - CCKP (Climate Change Knowledge Portal) - this data is only monthly averages so not going 
+#to be used, just helpful with visualisation and practice.
 
 backgroundWeather <- read_excel("data/sweden_background_temp.xlsx", col_names = TRUE)
 
@@ -192,8 +193,7 @@ tempDat <- backgroundWeather |>
 ggplot(tempDat) + 
     geom_point(aes(Month, mean_monthly_temp))
 
-
-##CRU data for mean, max and min monthly temp - CCKP
+#CRU data for mean, max and min monthly temp - CCKP
 
 cruMonthlyData <- read_excel("data/monthly_cru_data.xlsx", col_names = TRUE)
 
@@ -203,7 +203,6 @@ baselineCruDat <- cruMonthlyData |>
     group_by(Month, name) |> 
     summarise(avg_temp = mean(Temperature))
 
-
 tempPlot <- ggplot(baselineCruDat) + 
                 geom_line(mapping = aes(Month, avg_temp, colour = name, group = name)) + 
                 theme_linedraw()
@@ -211,35 +210,78 @@ tempPlot <- ggplot(baselineCruDat) +
 ggsave(filename = "plots/temp_baseline_plot.pdf", plot = tempPlot, width = 5, height = 6)
 
 
+##7/04 - ERA5 Analysis ---- 
 
+#Analysis of era5 data
+install.packages("raster")
+library(raster)
 
-###TESTS ----
+#Read part 1 (1980 - 1992) of the era5 data and select specific coordinates
+heatwavesDat1 <- brick("data/era5part1.grib")
+print(heatwavesDat1)
 
-##ERA5 data - GRIB
+coordinates <- matrix(c(11.44062, 58.90116), ncol = 2) #coordinates of the sampling site
 
-install.packages("terra")   # For handling raster data
-install.packages("ncdf4")   # For NetCDF support (sometimes needed)
-library(ncdf4)
-library(terra)
+heatwavesDat1 <- heatwavesDat1 |> 
+    extract(coordinates)
 
-era5dat <- terra::rast("data/era5Dat.grib")
+#Now that I have reshaped the grib file to only incldue values at the specific coordinates 
+#of the sampling site, I need to select the maximum temperature recorded for each day
 
-print(era5dat)
-names(era5dat)
-terra::ext(era5dat)
-terra::crs(era5dat)
+#First, create a new matrix where rows are days and columns are hourly records
+num_records = length(heatwavesDat1)
+complete_days = floor(num_records / 24) #number of days in the dataset
 
-point <- data.frame(x = 11.44062, y = 58.90116)
-temp_value <- terra::extract(era5dat, point)
-print(temp_value)
+hourlyData <- matrix(heatwavesDat1[1:(complete_days * 24)], ncol = 24, byrow = TRUE)
+head(hourlyData)
 
-df <- as.data.frame(era5dat, xy = TRUE)
-head(df)
+#Now, only select the maximum temp for each day 
+dailyData <- apply(hourlyData, 1, max)
+head(dailyData)
 
-time(era5dat)
+##Read part 2 (1993 - 2005) of the era5 data and select specific coordinates 
+heatwavesDat2 <- brick("data/era5part2.grib")
+print(heatwavesDat2)
 
+heatwavesDat2 <- heatwavesDat2 |> 
+    extract(coordinates)
 
-##ERA5 data - nc
+num_records2 = length(heatwavesDat2)
+complete_days2 = floor(num_records2 / 24)
 
-era5datNC <- terra::rast("data/era5Dat.nc")
-print(era5datNC)
+hourlyData2 <- matrix(heatwavesDat2[1:(complete_days2 * 24)], ncol = 24, byrow = TRUE)
+head(hourlyData2)
+
+dailyData2 <- apply(hourlyData2, 1, max)
+head(dailyData2)
+
+##Read part 3 (2006 - 2018) of the era5 data and select specific coordinates - NEED TO WAIT FOR LAST BIT OF DATA TO DOWNLOAD FROM ERA5
+
+#Now that we have all the daily temperature recording, we can combine it all together
+combinedTemp <- c(dailyData, dailyData2)
+
+#create sequences of dates corresponding to the data in dailyData and dailyData2
+start_year1 <- 1980
+start_year2 <- 1993
+start_year3 <- 2006 #will include once data has downloaded
+
+dates1 <- seq.Date(from = as.Date(paste(start_year1, "-01-01", sep="")), by = "day", length.out = length(dailyData))
+dates2 <- seq.Date(from = as.Date(paste(start_year2, "-01-01", sep="")), by = "day", length.out = length(dailyData2))
+
+#combine the two sequences of dates
+combinedDates <- c(dates1, dates2)
+
+#join dates and temperatures 
+temperatureData <- data.frame(Date = combinedDates, Temperature = combinedTemp)
+
+#transform this data into a tidy table
+library(tidyr)
+temperatureDataexample <- temperatureData |> 
+    separate(Date, c("Year", "Month", "Date"), sep = "-") |> 
+    mutate(Temperature = Temperature - 273.15) |>  #convert from Kelvins to degrees Celsius 
+    pivot_wider(names_from = Year, values_from = Temperature)  #create a data table with rows as dates of the year and columns as yearly observations
+
+#We have now selected the maximum temperature for each day, which we can run through the heatwavesR package 
+#to find the number of heatwave events per year. Before we can do this however, we need to define clear, 
+#baseline daily values to use as a threshold - WAITING FOR DATA FROM ERA5 TO DOWNLOAD
+
