@@ -56,7 +56,7 @@ title(main = 'Scaphiopus holbrookii')
 
 ##4/03 - Second Trial at BioTIME ---- 
 library(data.table)
-library("tidyverse")
+library(tidyverse)
 zooplanktonData <- read.csv("data/raw_data_253.csv") #load zooplankton data from BioTIME
 
 speciesData <- data.table(zooplanktonData$GENUS_SPECIES)  #create a new data table with only genus information
@@ -210,41 +210,39 @@ tempPlot <- ggplot(baselineCruDat) +
 ggsave(filename = "plots/temp_baseline_plot.pdf", plot = tempPlot, width = 5, height = 6)
 
 
-##7/04 - ERA5 Analysis ---- 
-
-#Analysis of era5 data
+##7/04 - ERA5 Analysis - Heatwave data ---- 
 install.packages("raster")
 library(raster)
+library(ggplot2)
 
+##### HEATWAVE DATA ########
 #Read part 1 (1980 - 1992) of the era5 data and select specific coordinates
 heatwavesDat1 <- brick("data/era5part1.grib")
 print(heatwavesDat1)
 
 coordinates <- matrix(c(11.44062, 58.90116), ncol = 2) #coordinates of the sampling site
 
-heatwavesDat1 <- heatwavesDat1 |> 
-    extract(coordinates)
+heatwavesDat1 <- extract(heatwavesDat1, coordinates)
 
-#Now that I have reshaped the grib file to only incldue values at the specific coordinates 
+#Now that I have reshaped the grib file to only include values at the specific coordinates 
 #of the sampling site, I need to select the maximum temperature recorded for each day
 
 #First, create a new matrix where rows are days and columns are hourly records
-num_records = length(heatwavesDat1)
-complete_days = floor(num_records / 24) #number of days in the dataset
+num_records1 = length(heatwavesDat1)
+complete_days1 = floor(num_records1 / 24) #number of days in the dataset
 
-hourlyData <- matrix(heatwavesDat1[1:(complete_days * 24)], ncol = 24, byrow = TRUE)
-head(hourlyData)
+hourlyData1 <- matrix(heatwavesDat1[1:(complete_days1 * 24)], ncol = 24, byrow = TRUE)
+head(hourlyData1)
 
 #Now, only select the maximum temp for each day 
-dailyData <- apply(hourlyData, 1, max)
-head(dailyData)
+dailyData1 <- apply(hourlyData1, 1, max)
+head(dailyData1)
 
 ##Read part 2 (1993 - 2005) of the era5 data and select specific coordinates 
 heatwavesDat2 <- brick("data/era5part2.grib")
 print(heatwavesDat2)
 
-heatwavesDat2 <- heatwavesDat2 |> 
-    extract(coordinates)
+heatwavesDat2 <- extract(heatwavesDat2, coordinates)
 
 num_records2 = length(heatwavesDat2)
 complete_days2 = floor(num_records2 / 24)
@@ -255,33 +253,377 @@ head(hourlyData2)
 dailyData2 <- apply(hourlyData2, 1, max)
 head(dailyData2)
 
-##Read part 3 (2006 - 2018) of the era5 data and select specific coordinates - NEED TO WAIT FOR LAST BIT OF DATA TO DOWNLOAD FROM ERA5
+##Read part 3 (2006 - 2011) of the era5 data and select specific coordinates
+heatwavesDat3 <- brick("data/era5part3.grib")
+print(heatwavesDat3)
+
+heatwavesDat3 <- extract(heatwavesDat3, coordinates)
+
+num_records3 = length(heatwavesDat3)
+complete_days3 = floor(num_records3 / 24)
+
+hourlyData3 <- matrix(heatwavesDat3[1:(complete_days3 * 24)], ncol = 24, byrow = TRUE)
+head(hourlyData3)
+
+dailyData3 <- apply(hourlyData3, 1, max)
+head(dailyData3)
+
+##Read part 4 (2012 - 2018) of the era5 data and select specific coordinates
+heatwavesDat4 <- brick("data/era5part4.grib")
+print(heatwavesDat4)
+
+heatwavesDat4 <- extract(heatwavesDat4, coordinates)
+
+num_records4 = length(heatwavesDat4)
+complete_days4 = floor(num_records4 / 24)
+
+hourlyData4 <- matrix(heatwavesDat4[1:(complete_days4 * 24)], ncol = 24, byrow = TRUE)
+head(hourlyData4)
+
+dailyData4 <- apply(hourlyData4, 1, max)
+head(dailyData4)
 
 #Now that we have all the daily temperature recording, we can combine it all together
-combinedTemp <- c(dailyData, dailyData2)
+combinedTemp <- c(dailyData1, dailyData2, dailyData3, dailyData4)
 
 #create sequences of dates corresponding to the data in dailyData and dailyData2
 start_year1 <- 1980
 start_year2 <- 1993
-start_year3 <- 2006 #will include once data has downloaded
+start_year3 <- 2006 
+start_year4 <- 2012
 
-dates1 <- seq.Date(from = as.Date(paste(start_year1, "-01-01", sep="")), by = "day", length.out = length(dailyData))
+dates1 <- seq.Date(from = as.Date(paste(start_year1, "-01-01", sep="")), by = "day", length.out = length(dailyData1))
 dates2 <- seq.Date(from = as.Date(paste(start_year2, "-01-01", sep="")), by = "day", length.out = length(dailyData2))
+dates3 <- seq.Date(from = as.Date(paste(start_year3, "-01-01", sep="")), by = "day", length.out = length(dailyData3))
+dates4 <- seq.Date(from = as.Date(paste(start_year4, "-01-01", sep="")), by = "day", length.out = length(dailyData4))
 
-#combine the two sequences of dates
-combinedDates <- c(dates1, dates2)
+#combine the sequences of dates together
+combinedDates <- c(dates1, dates2, dates3, dates4)
 
-#join dates and temperatures 
-temperatureData <- data.frame(Date = combinedDates, Temperature = combinedTemp)
+#create a data table for the maximum temperature recorded at the site for each date between 1980-2018
+temperatureData <- data.frame(t = combinedDates, temp = combinedTemp) #columns here are in the correct form for heatwaveR
 
-#transform this data into a tidy table
+#transform this data into a tidy table for easy visualisation - not necessary for heatwaveR
 library(tidyr)
-temperatureDataexample <- temperatureData |> 
-    separate(Date, c("Year", "Month", "Date"), sep = "-") |> 
-    mutate(Temperature = Temperature - 273.15) |>  #convert from Kelvins to degrees Celsius 
-    pivot_wider(names_from = Year, values_from = Temperature)  #create a data table with rows as dates of the year and columns as yearly observations
+temperatureDataTidy <- temperatureData |> 
+    separate(t, c("Year", "Month", "Date"), sep = "-") |> 
+    mutate(temp = temp - 273.15) |>  #convert from Kelvins to degrees Celsius 
+    pivot_wider(names_from = Year, values_from = temp)  #create a data table with rows as dates of the year and columns as yearly observations
 
 #We have now selected the maximum temperature for each day, which we can run through the heatwavesR package 
 #to find the number of heatwave events per year. Before we can do this however, we need to define clear, 
-#baseline daily values to use as a threshold - WAITING FOR DATA FROM ERA5 TO DOWNLOAD
+#baseline daily values to use as a threshold
 
+
+##9/04 - ERA5 Analysis - Baseline data ---- 
+#### BASELINE DATA ####
+#I had to download the data in chunks from the ERA5 database because the request was too large 
+#so before I can join it with the heatwaves data I need to combine it all
+
+#First, import all the data
+baseline1 <- brick("data/era5BASELINE1.grib")
+print(baseline1)
+baseline2 <- brick("data/era5BASELINE2a.grib")
+print(baseline2)
+baseline3 <- brick("data/era5BASELINE2b.grib")
+print(baseline3)
+baseline4 <- brick("data/era5BASELINE3.grib")
+print(baseline4)
+
+#Select the same coordinates 
+baseline1 <- extract(baseline1, coordinates)
+baseline2 <- extract(baseline2, coordinates)
+baseline3 <- extract(baseline3, coordinates)
+baseline4 <- extract(baseline4, coordinates)
+
+#To make the data cohesive, I will select the maximum temperature recorded each day over the 30 year baseline 
+#period and use this to set thresholds for maximum daily temperatures
+num_baseline1_records = length(baseline1)
+complete_baseline1_days = floor(num_baseline1_records / 24)
+num_baseline2_records = length(baseline2)
+complete_baseline2_days = floor(num_baseline2_records / 24)
+num_baseline3_records = length(baseline3)
+complete_baseline3_days = floor(num_baseline3_records / 24)
+num_baseline4_records = length(baseline4)
+complete_baseline4_days = floor(num_baseline4_records / 24)
+
+hourlyBaselineData1 <- matrix(baseline1[1:(complete_baseline1_days * 24)], ncol = 24, byrow = TRUE)
+head(hourlyBaselineData1)
+hourlyBaselineData2 <- matrix(baseline2[1:(complete_baseline2_days * 24)], ncol = 24, byrow = TRUE)
+head(hourlyBaselineData2)
+hourlyBaselineData3 <- matrix(baseline3[1:(complete_baseline3_days * 24)], ncol = 24, byrow = TRUE)
+head(hourlyBaselineData3)
+hourlyBaselineData4 <- matrix(baseline4[1:(complete_baseline4_days * 24)], ncol = 24, byrow = TRUE)
+head(hourlyBaselineData4)
+
+#select the daily maximum temperature
+dailyBaselineData1 <- apply(hourlyBaselineData1, 1, max)
+head(dailyBaselineData1)
+dailyBaselineData2 <- apply(hourlyBaselineData2, 1, max)
+head(dailyBaselineData2)
+dailyBaselineData3 <- apply(hourlyBaselineData3, 1, max)
+head(dailyBaselineData3)
+dailyBaselineData4 <- apply(hourlyBaselineData4, 1, max)
+head(dailyBaselineData4)
+
+#Join all of the baseline temperature data together 
+combinedBaselineTemp <- c(dailyBaselineData1, dailyBaselineData2, dailyBaselineData3, dailyBaselineData4)
+
+#Now, I need to create another sequence of dates corresponding to the baseline data
+start_baselineYr1 <- 1950 
+start_baselineYr2 <- 1963
+start_baselineYr3 <- 1969
+start_baselineYr4 <- 1976
+
+baselineDates1 <- seq.Date(from = as.Date(paste(start_baselineYr1, "-01-01", sep="")), by = "day", length.out = length(dailyBaselineData1))
+baselineDates2 <- seq.Date(from = as.Date(paste(start_baselineYr2, "-01-01", sep="")), by = "day", length.out = length(dailyBaselineData2))
+baselineDates3 <- seq.Date(from = as.Date(paste(start_baselineYr3, "-01-01", sep="")), by = "day", length.out = length(dailyBaselineData3))
+baselineDates4 <- seq.Date(from = as.Date(paste(start_baselineYr4, "-01-01", sep="")), by = "day", length.out = length(dailyBaselineData4))
+
+#combine the dates into one sequence
+combinedBaselineDates <- c(baselineDates1, baselineDates2, baselineDates3, baselineDates4)
+
+#create a data table for the baseline data
+baselineData <- data.frame(t = combinedBaselineDates, temp = combinedBaselineTemp)
+
+##This will be used in heatwaveR - this data table is a collection of the maximum daily temperature recorded 
+#at the sampling site over the 30 year baseline period (1950-1980) and over the entire sampling period (1980-2018)
+heatwaveData <- rbind(baselineData, temperatureData) |> 
+    mutate(temp = temp - 273.15) #convert from Kelvins to degrees Celsius
+
+##### heatwaveR ######
+install.packages("heatwaveR")
+library(heatwaveR)
+library(cowplot)
+library(ggplot)
+
+#1a. 95% threshold, one day heatwaves 
+thrs95dur1 <- ts2clm(data = heatwaveData, x = t, y = temp, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 95)
+res1a <- filter(thrs95dur1, t >= "1980-01-01") #filter for study years
+out1a <- detect_event(res1a, minDuration = 1) 
+heatwaves1a <- block_average(out1a)
+
+summary(glm(count ~ year, family = "poisson", data = heatwaves1a))
+
+#plot of the number of heatwaves each year from 1980-2018 given the threshold and minimum duration 
+thrs95dur1Num <- ggplot(data = heatwaves1a, aes(x = year, y = count)) + 
+    geom_point(colour = "red") + 
+    geom_line() + 
+    labs(x = "year", y = "number of events")
+
+#plot of temperature in 2018 as a demonstration for how the number of heatwaves per year might 
+#change as duration and threshold definitions are changed 
+thrs95dur1Yr <- event_line(out1a, start_date = "2018-01-01", end_date = "2018-12-31")
+
+thrs95dur1Plot <- plot_grid(thrs95dur1Num, thrs95dur1Yr, nrow = 2)
+
+ggsave(filename = "plots/thresholds_temp/1day_95.pdf", plot = thrs95dur1Plot)
+
+#1b. 90% threshold, one day heatwaves 
+thrs90dur1 <- ts2clm(data = heatwaveData, x = t, y = temp, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 90)
+res1b <- filter(thrs90dur1, t >= "1980-01-01")
+out1b <- detect_event(res1b, minDuration = 1)
+heatwaves1b <- block_average(out1b)
+
+summary(glm(count ~ year, family = "poisson", data = heatwaves1b))
+
+thrs90dur1Num <- ggplot(data = heatwaves1b, aes(x = year, y = count)) + 
+    geom_point(colour = "red") + 
+    geom_line() + 
+    labs(x = "year", y = "number of events")
+
+thrs90dur1Yr <- event_line(out1b, start_date = "2018-01-01", end_date = "2018-12-31")
+
+thrs90dur1Plot <- plot_grid(thrs90dur1Num, thrs90dur1Yr, nrow = 2)
+
+ggsave(filename = "plots/thresholds_temp/1day_90.pdf", plot = thrs90dur1Plot)
+
+#1c. 85% threshold, one day heatwaves 
+thrs85dur1 <- ts2clm(data = heatwaveData, x = t, y = temp, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 85)
+res1c <- filter(thrs85dur1, t >= "1980-01-01")
+out1c <- detect_event(res1c, minDuration = 1)
+heatwaves1c <- block_average(out1c)
+
+summary(glm(count ~ year, family = "poisson", data = heatwaves1c))
+
+thrs85dur1Num <- ggplot(data = heatwaves1c, aes(x = year, y = count)) + 
+    geom_point(colour = "red") + 
+    geom_line() + 
+    labs(x = "year", y = "number of events")
+
+thrs85dur1Yr <- event_line(out1c, start_date = "2018-01-01", end_date = "2018-12-31")
+
+thrs85dur1Plot <- plot_grid(thrs85dur1Num, thrs85dur1Yr, nrow = 2)
+
+ggsave(filename = "plots/thresholds_temp/1day_85.pdf", plot = thrs85dur1Plot)
+
+#1d. 99% threshold, one day heatwaves 
+thrs99dur1 <- ts2clm(data = heatwaveData, x = t, y = temp, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 99)
+res1d <- filter(thrs99dur1, t >= "1980-01-01")
+out1d <- detect_event(res1d, minDuration = 1)
+heatwaves1d <- block_average(out1d)
+
+summary(glm(count ~ year, family = "poisson", data = heatwaves1d))
+
+thrs99dur1Num <- ggplot(data = heatwaves1d, aes(x = year, y = count)) + 
+    geom_point(colour = "red") + 
+    geom_line() + 
+    labs(x = "year", y = "number of events")
+
+thrs99dur1Yr <- event_line(out1d, start_date = "2018-01-01", end_date = "2018-12-31")
+
+thrs99dur1Plot <- plot_grid(thrs99dur1Num, thrs99dur1Yr, nrow = 2)
+
+ggsave(filename = "plots/thresholds_temp/1day_99.pdf", plot = thrs99dur1Plot)
+
+#2a. 95% threshold, two day heatwaves 
+thrs95dur2 <- ts2clm(data = heatwaveData, x = t, y = temp, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 95)
+res2a <- filter(thrs95dur2, t >= "1980-01-01")
+out2a <- detect_event(res2a, minDuration = 2)
+heatwaves2a <- block_average(out2a)
+
+summary(glm(count ~ year, family = "poisson", data = heatwaves2a))
+
+thrs95dur2Num <- ggplot(data = heatwaves2a, aes(x = year, y = count)) + 
+    geom_point(colour = "red") + 
+    geom_line() + 
+    labs(x = "year", y = "number of events")
+
+thrs95dur2Yr <- event_line(out2a, start_date = "2018-01-01", end_date = "2018-12-31")
+
+thrs95dur2Plot <- plot_grid(thrs95dur2Num, thrs95dur2Yr, nrow = 2)
+
+ggsave(filename = "plots/thresholds_temp/2day_95.pdf", plot = thrs95dur2Plot)
+
+#2b. 90% threshold, two day heatwaves 
+thrs90dur2 <- ts2clm(data = heatwaveData, x = t, y = temp, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 90)
+res2b <- filter(thrs90dur2, t >= "1980-01-01")
+out2b <- detect_event(res2b, minDuration = 2)
+heatwaves2b <- block_average(out2b)
+
+summary(glm(count ~ year, family = "poisson", data = heatwaves2b))
+
+thrs90dur2Num <- ggplot(data = heatwaves2b, aes(x = year, y = count)) + 
+    geom_point(colour = "red") + 
+    geom_line() + 
+    labs(x = "year", y = "number of events")
+
+thrs90dur2Yr <- event_line(out2b, start_date = "2018-01-01", end_date = "2018-12-31")
+
+thrs90dur2Plot <- plot_grid(thrs90dur2Num, thrs90dur2Yr, nrow = 2)
+
+ggsave(filename = "plots/thresholds_temp/2day_90.pdf", plot = thrs90dur2Plot)
+
+#2c. 85% threshold, two day heatwaves 
+thrs85dur2 <- ts2clm(data = heatwaveData, x = t, y = temp, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 85)
+res2c <- filter(thrs85dur2, t >= "1980-01-01")
+out2c <- detect_event(res2c, minDuration = 2)
+heatwaves2c <- block_average(out2c)
+
+summary(glm(count ~ year, family = "poisson", data = heatwaves2c))
+
+thrs85dur2Num <- ggplot(data = heatwaves2c, aes(x = year, y = count)) + 
+    geom_point(colour = "red") + 
+    geom_line() + 
+    labs(x = "year", y = "number of events")
+
+thrs85dur2Yr <- event_line(out2c, start_date = "2018-01-01", end_date = "2018-12-31")
+
+thrs85dur2Plot <- plot_grid(thrs85dur2Num, thrs85dur2Yr, nrow = 2)
+
+ggsave(filename = "plots/thresholds_temp/2day_85.pdf", plot = thrs85dur2Plot)
+
+#2d. 99% threshold, two day heatwaves 
+thrs99dur2 <- ts2clm(data = heatwaveData, x = t, y = temp, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 99)
+res2d <- filter(thrs99dur2, t >= "1980-01-01")
+out2d <- detect_event(res2d, minDuration = 2)
+heatwaves2d <- block_average(out2d)
+
+summary(glm(count ~ year, family = "poisson", data = heatwaves2d))
+
+thrs99dur2Num <- ggplot(data = heatwaves2d, aes(x = year, y = count)) + 
+    geom_point(colour = "red") + 
+    geom_line() + 
+    labs(x = "year", y = "number of events")
+
+thrs99dur2Yr <- event_line(out2d, start_date = "2018-01-01", end_date = "2018-12-31")
+
+thrs99dur2Plot <- plot_grid(thrs99dur2Num, thrs99dur2Yr, nrow = 2)
+
+ggsave(filename = "plots/thresholds_temp/2day_99.pdf", plot = thrs99dur2Plot)
+
+#3a. 95% threshold, three day heatwaves 
+thrs95dur3 <- ts2clm(data = heatwaveData, x = t, y = temp, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 95)
+res3a <- filter(thrs95dur3, t >= "1980-01-01")
+out3a <- detect_event(res3a, minDuration = 3)
+heatwaves3a <- block_average(out3a)
+
+summary(glm(count ~ year, family = "poisson", data = heatwaves3a))
+
+thrs95dur3Num <- ggplot(data = heatwaves3a, aes(x = year, y = count)) + 
+    geom_point(colour = "red") + 
+    geom_line() + 
+    labs(x = "year", y = "number of events")
+
+thrs95dur3Yr <- event_line(out3a, start_date = "2018-01-01", end_date = "2018-12-31")
+
+thrs95dur3Plot <- plot_grid(thrs95dur3Num, thrs95dur2Yr, nrow = 2)
+
+ggsave(filename = "plots/thresholds_temp/3day_95.pdf", plot = thrs95dur3Plot)
+
+#3b. 90% threshold, three day heatwaves 
+thrs90dur3 <- ts2clm(data = heatwaveData, x = t, y = temp, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 90)
+res3b <- filter(thrs90dur3, t >= "1980-01-01")
+out3b <- detect_event(res3b, minDuration = 3)
+heatwaves3b <- block_average(out3b)
+
+summary(glm(count ~ year, family = "poisson", data = heatwaves3b))
+
+thrs90dur3Num <- ggplot(data = heatwaves3b, aes(x = year, y = count)) + 
+    geom_point(colour = "red") + 
+    geom_line() + 
+    labs(x = "year", y = "number of events")
+
+thrs90dur3Yr <- event_line(out3b, start_date = "2018-01-01", end_date = "2018-12-31")
+
+thrs90dur3Plot <- plot_grid(thrs90dur3Num, thrs90dur3Yr, nrow = 2)
+
+ggsave(filename = "plots/thresholds_temp/3day_90.pdf", plot = thrs90dur3Plot)
+
+#3c. 85% threshold, three day heatwaves 
+thrs85dur3 <- ts2clm(data = heatwaveData, x = t, y = temp, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 85)
+res3c <- filter(thrs85dur3, t >= "1980-01-01")
+out3c <- detect_event(res3c, minDuration = 3)
+heatwaves3c <- block_average(out3c)
+
+summary(glm(count ~ year, family = "poisson", data = heatwaves3c))
+
+thrs85dur3Num <- ggplot(data = heatwaves3c, aes(x = year, y = count)) + 
+    geom_point(colour = "red") + 
+    geom_line() + 
+    labs(x = "year", y = "number of events")
+
+thrs85dur3Yr <- event_line(out3c, start_date = "2018-01-01", end_date = "2018-12-31")
+
+thrs85dur3Plot <- plot_grid(thrs85dur3Num, thrs85dur3Yr, nrow = 2)
+
+ggsave(filename = "plots/thresholds_temp/3day_85.pdf", plot = thrs85dur3Plot)
+
+#3d. 99% threshold, three day heatwaves 
+thrs99dur3 <- ts2clm(data = heatwaveData, x = t, y = temp, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 99)
+res3d <- filter(thrs99dur3, t >= "1980-01-01")
+out3d <- detect_event(res3d, minDuration = 3)
+heatwaves3d <- block_average(out3d)
+
+summary(glm(count ~ year, family = "poisson", data = heatwaves3d))
+
+thrs99dur3Num <- ggplot(data = heatwaves3d, aes(x = year, y = count)) + 
+    geom_point(colour = "red") + 
+    geom_line() + 
+    labs(x = "year", y = "number of events")
+
+thrs99dur3Yr <- event_line(out3d, start_date = "2018-01-01", end_date = "2018-12-31")
+
+thrs99dur3Plot <- plot_grid(thrs99dur3Num, thrs99dur3Yr, nrow = 2)
+
+ggsave(filename = "plots/thresholds_temp/3day_99.pdf", plot = thrs99dur3Plot)
