@@ -627,3 +627,18 @@ thrs99dur3Yr <- event_line(out3d, start_date = "2018-01-01", end_date = "2018-12
 thrs99dur3Plot <- plot_grid(thrs99dur3Num, thrs99dur3Yr, nrow = 2)
 
 ggsave(filename = "plots/thresholds_temp/3day_99.pdf", plot = thrs99dur3Plot)
+
+
+
+
+
+## PRECIP DATA: 
+# era5BASELINE1_precip = 1950-1960
+# era5BASELINE2_precip = 1961-1970
+# era5BASELINE3_precip = 1971-1979
+
+# era5part1_precip = 1980-1990
+# era5part2_precip = 1991-2000
+# era5part3_precip = 2001-2009
+# era5part4_precip = 2010-2018
+
