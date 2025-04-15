@@ -120,7 +120,8 @@ G11473A_SalmoDat <- select(G11473A_SalmoDat, !TimeSeriesID & !SurveyID & !Specie
 
 salmoDataTable <- data.table(G11473A_SalmoDat) |> 
     group_by(Year) |> 
-    summarise(Abunance = mean(Abundance))
+    rename(year = Year) |>
+    summarise(Abunance = max(Abundance)) #updated this to select the maximum abundance instead of the mean - more accurate in this study
 
 pdf("plots/Salmo_trutta.pdf", width = 6, height = 5)
 plot(salmoDataTable$Year, salmoDataTable$Abunance, type = "l", xlab = "time", ylab = "abundance")
@@ -222,14 +223,14 @@ print(heatwavesDat1)
 
 coordinates <- matrix(c(11.44062, 58.90116), ncol = 2) #coordinates of the sampling site
 
-heatwavesDat1 <- extract(heatwavesDat1, coordinates)
+heatwavesDat1 <- raster::extract(heatwavesDat1, coordinates)
 
 #Now that I have reshaped the grib file to only include values at the specific coordinates 
 #of the sampling site, I need to select the maximum temperature recorded for each day
 
 #First, create a new matrix where rows are days and columns are hourly records
-num_records1 = length(heatwavesDat1)
-complete_days1 = floor(num_records1 / 24) #number of days in the dataset
+num_records1 <- length(heatwavesDat1)
+complete_days1 <- floor(num_records1 / 24) #number of days in the dataset
 
 hourlyData1 <- matrix(heatwavesDat1[1:(complete_days1 * 24)], ncol = 24, byrow = TRUE)
 head(hourlyData1)
@@ -242,10 +243,10 @@ head(dailyData1)
 heatwavesDat2 <- brick("data/era5part2.grib")
 print(heatwavesDat2)
 
-heatwavesDat2 <- extract(heatwavesDat2, coordinates)
+heatwavesDat2 <- raster::extract(heatwavesDat2, coordinates)
 
-num_records2 = length(heatwavesDat2)
-complete_days2 = floor(num_records2 / 24)
+num_records2 <- length(heatwavesDat2)
+complete_days2 <- floor(num_records2 / 24)
 
 hourlyData2 <- matrix(heatwavesDat2[1:(complete_days2 * 24)], ncol = 24, byrow = TRUE)
 head(hourlyData2)
@@ -257,10 +258,10 @@ head(dailyData2)
 heatwavesDat3 <- brick("data/era5part3.grib")
 print(heatwavesDat3)
 
-heatwavesDat3 <- extract(heatwavesDat3, coordinates)
+heatwavesDat3 <- raster::extract(heatwavesDat3, coordinates)
 
-num_records3 = length(heatwavesDat3)
-complete_days3 = floor(num_records3 / 24)
+num_records3 <- length(heatwavesDat3)
+complete_days3 <- floor(num_records3 / 24)
 
 hourlyData3 <- matrix(heatwavesDat3[1:(complete_days3 * 24)], ncol = 24, byrow = TRUE)
 head(hourlyData3)
@@ -272,10 +273,10 @@ head(dailyData3)
 heatwavesDat4 <- brick("data/era5part4.grib")
 print(heatwavesDat4)
 
-heatwavesDat4 <- extract(heatwavesDat4, coordinates)
+heatwavesDat4 <- raster::extract(heatwavesDat4, coordinates)
 
-num_records4 = length(heatwavesDat4)
-complete_days4 = floor(num_records4 / 24)
+num_records4 <- length(heatwavesDat4)
+complete_days4 <- floor(num_records4 / 24)
 
 hourlyData4 <- matrix(heatwavesDat4[1:(complete_days4 * 24)], ncol = 24, byrow = TRUE)
 head(hourlyData4)
@@ -315,7 +316,7 @@ temperatureDataTidy <- temperatureData |>
 #baseline daily values to use as a threshold
 
 
-##9/04 - ERA5 Analysis - Baseline data ---- 
+##9/04 - ERA5 Analysis - Baseline heatwave data ---- 
 #### BASELINE DATA ####
 #I had to download the data in chunks from the ERA5 database because the request was too large 
 #so before I can join it with the heatwaves data I need to combine it all
@@ -331,21 +332,21 @@ baseline4 <- brick("data/era5BASELINE3.grib")
 print(baseline4)
 
 #Select the same coordinates 
-baseline1 <- extract(baseline1, coordinates)
-baseline2 <- extract(baseline2, coordinates)
-baseline3 <- extract(baseline3, coordinates)
-baseline4 <- extract(baseline4, coordinates)
+baseline1 <- raster::extract(baseline1, coordinates)
+baseline2 <- raster::extract(baseline2, coordinates)
+baseline3 <- raster::extract(baseline3, coordinates)
+baseline4 <- raster::extract(baseline4, coordinates)
 
 #To make the data cohesive, I will select the maximum temperature recorded each day over the 30 year baseline 
 #period and use this to set thresholds for maximum daily temperatures
-num_baseline1_records = length(baseline1)
-complete_baseline1_days = floor(num_baseline1_records / 24)
-num_baseline2_records = length(baseline2)
-complete_baseline2_days = floor(num_baseline2_records / 24)
-num_baseline3_records = length(baseline3)
-complete_baseline3_days = floor(num_baseline3_records / 24)
-num_baseline4_records = length(baseline4)
-complete_baseline4_days = floor(num_baseline4_records / 24)
+num_baseline1_records <- length(baseline1)
+complete_baseline1_days <- floor(num_baseline1_records / 24)
+num_baseline2_records <- length(baseline2)
+complete_baseline2_days <- floor(num_baseline2_records / 24)
+num_baseline3_records <- length(baseline3)
+complete_baseline3_days <- floor(num_baseline3_records / 24)
+num_baseline4_records <- length(baseline4)
+complete_baseline4_days <- floor(num_baseline4_records / 24)
 
 hourlyBaselineData1 <- matrix(baseline1[1:(complete_baseline1_days * 24)], ncol = 24, byrow = TRUE)
 head(hourlyBaselineData1)
@@ -629,9 +630,7 @@ thrs99dur3Plot <- plot_grid(thrs99dur3Num, thrs99dur3Yr, nrow = 2)
 ggsave(filename = "plots/thresholds_temp/3day_99.pdf", plot = thrs99dur3Plot)
 
 
-
-
-
+##14/04 - ERA5 Analysis - Precipitation data ----
 ## PRECIP DATA: 
 # era5BASELINE1_precip = 1950-1960
 # era5BASELINE2_precip = 1961-1970
@@ -642,3 +641,394 @@ ggsave(filename = "plots/thresholds_temp/3day_99.pdf", plot = thrs99dur3Plot)
 # era5part3_precip = 2001-2009
 # era5part4_precip = 2010-2018
 
+#First, load all of the precipitation data from 1980-2018, and all of the baseline 
+#data from 1950-1980
+precipData1 <- brick("data/era5part1_precip.grib")
+print(precipData1)
+precipData2 <-brick("data/era5part2_precip.grib")
+print(precipData2)
+precipData3 <- brick("data/era5part3_precip.grib")
+print(precipData3)
+precipData4 <- brick("data/era5part4_precip.grib")
+print(precipData4)
+
+precipBaseline1 <- brick("data/era5BASELINE1_precip.grib")
+print(precipBaseline1)
+precipBaseline2 <- brick("data/era5BASELINE2_precip.grib")
+print(precipBaseline2)
+precipBaseline3 <- brick("data/era5BASELINE3_precip.grib")
+print(precipBaseline3)
+
+#Now, select the coordinates of the sampling sites 
+precipData1 <- extract(precipData1, coordinates)
+precipData2 <- extract(precipData2, coordinates)
+precipData3 <- extract(precipData3, coordinates)
+precipData4 <- extract(precipData4, coordinates)
+precipBaseline1 <- extract(precipBaseline1, coordinates)
+precipBaseline2 <- extract(precipBaseline2, coordinates)
+precipBaseline3 <- extract(precipBaseline3, coordinates)
+
+#Instead of selecting the maximum precipitation value for each day, I will calculate the total 
+#sum of precipitation for the whole day 
+
+num_precipBaseline1_records <- length(precipBaseline1)
+complete_precipBaseline1_days <- floor(num_precipBaseline1_records / 24)
+num_precipBaseline2_records <- length(precipBaseline2)
+complete_precipBaseline2_days <- floor(num_precipBaseline2_records / 24)
+num_precipBaseline3_records <- length(precipBaseline3)
+complete_precipBaseline3_days <- floor(num_precipBaseline3_records / 24)
+
+num_precip1_records <- length(precipData1)
+complete_precip1_days <- floor(num_precip1_records / 24)
+num_precip2_records <- length(precipData2)
+complete_precip2_days <- floor(num_precip2_records / 24)
+num_precip3_records <- length(precipData3)
+complete_precip3_days <- floor(num_precip3_records / 24)
+num_precip4_records <- length(precipData4)
+complete_precip4_days <- floor(num_precip4_records / 24)
+
+#Join all of the data together 
+hourlyPrecipBaseline1 <- matrix(precipBaseline1[1:(complete_precipBaseline1_days * 24)], ncol = 24, byrow = TRUE)
+head(hourlyPrecipBaseline1)
+hourlyPrecipBaseline2 <- matrix(precipBaseline2[1:(complete_precipBaseline2_days * 24)], ncol = 24, byrow = TRUE)
+head(hourlyPrecipBaseline2)
+hourlyPrecipBaseline3 <- matrix(precipBaseline3[1:(complete_precipBaseline3_days * 24)], ncol = 24, byrow = TRUE)
+head(hourlyPrecipBaseline3)
+
+hourlyPrecip1 <- matrix(precipData1[1:(complete_precip1_days * 24)], ncol = 24, byrow = TRUE)
+head(hourlyPrecip1)
+hourlyPrecip2 <- matrix(precipData2[1:(complete_precip2_days * 24)], ncol = 24, byrow = TRUE)
+head(hourlyPrecip2)
+hourlyPrecip3 <- matrix(precipData3[1:(complete_precip3_days * 24)], ncol = 24, byrow = TRUE)
+head(hourlyPrecip3)
+hourlyPrecip4 <- matrix(precipData4[1:(complete_precip4_days * 24)], ncol = 24, byrow = TRUE)
+head(hourlyPrecip4)
+
+#Calculate total daily precipitation 
+dailyPrecipBaseline1 <- rowSums(hourlyPrecipBaseline1)
+dailyPrecipBaseline2 <- rowSums(hourlyPrecipBaseline2)
+dailyPrecipBaseline3 <- rowSums(hourlyPrecipBaseline3)
+
+dailyPrecip1 <- rowSums(hourlyPrecip1)
+dailyPrecip2 <- rowSums(hourlyPrecip2)
+dailyPrecip3 <- rowSums(hourlyPrecip3)
+dailyPrecip4 <- rowSums(hourlyPrecip4)
+
+#Finally, combine all of the precipitation data together
+combinedPrecip <- c(dailyPrecipBaseline1, dailyPrecipBaseline2, dailyPrecipBaseline3, dailyPrecip1, dailyPrecip2, dailyPrecip3, dailyPrecip4)
+
+#Now, add corresponding dates to the dataset 
+dates <- seq.Date(from = as.Date("1950-01-01"), by = "day", length.out = length(combinedPrecip))
+
+#Create a dataset for total precipitation recorded at the site from 1950-1980 (baseline period)
+#and 1980-2018
+precipitationData <- data.frame(t = dates, precip = combinedPrecip) 
+
+#To get an understanding of the data, heres an example where I calculated the total precipitation recorded in 2018
+data2018 <- precipitationData |> 
+    filter(str_detect(t, "2018")) |> 
+    mutate(total_precip = sum(precip))
+
+total2018 <- data2018[1,3]
+total2018 * 1000 #total precipitation recorded at the site in 2018 in mm
+
+#Now, I can use the exact same methods I used to analyse the heatwave data to analyse the precipitaion data 
+library(heatwaveR)
+library(tidyverse)
+library(cowplot)
+library(ggplot2)
+
+#For precipitation, we only want to count the total number of days per year that exceed a given threshold, therefore 
+#we do not need to change minimum duration, we can just set it to 1 and use 
+
+#95% threshold 
+thrs95precip <- ts2clm(data = precipitationData, x = t, y = precip, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 95)
+res1 <- filter(thrs95precip, t >= "1980-01-01") #filter for study years 
+out1 <- detect_event(res1, x = t, y = precip, minDuration = 1)
+precip1 <- block_average(out1, x = t, y = precip)
+
+thrs95_exceeded <- res1 |> 
+    separate(t, c("year", "month", "date"), sep = "-") |> 
+    group_by(year) |> 
+    summarise(yearlyCount = sum(precip > thresh))
+
+thrs95_exceeded$year <- as.numeric(thrs95_exceeded$year)
+thrs95_exceeded$yearlyCount <- as.numeric(thrs95_exceeded$yearlyCount)
+
+thrs95precipPlot <- ggplot(data = thrs95_exceeded, aes(x = year, y = yearlyCount)) + 
+        geom_point(colour = "red") + 
+        geom_line() + 
+        labs(x = "year", y = "number of events")
+
+ggsave(filename = "plots/thresholds_precip/95.pdf", plot = thrs95precipPlot)
+
+#90% threshold 
+thrs90precip <- ts2clm(data = precipitationData, x = t, y = precip, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 90)
+res2 <- filter(thrs90precip, t >= "1980-01-01") #filter for study years 
+out2 <- detect_event(res2, x = t, y = precip, minDuration = 1)
+precip2 <- block_average(out2, x = t, y = precip)
+
+thrs90_exceeded <- res2 |> 
+    separate(t, c("year", "month", "date"), sep = "-") |> 
+    group_by(year) |> 
+    summarise(yearlyCount = sum(precip > thresh))
+
+thrs90_exceeded$year <- as.numeric(thrs90_exceeded$year)
+thrs90_exceeded$yearlyCount <- as.numeric(thrs90_exceeded$yearlyCount)
+
+thrs90precipPlot <- ggplot(data = thrs90_exceeded, aes(x = year, y = yearlyCount)) + 
+        geom_point(colour = "red") + 
+        geom_line() + 
+        labs(x = "year", y = "number of events")
+
+ggsave(filename = "plots/thresholds_precip/90.pdf", plot = thrs90precipPlot)
+
+#85% threshold 
+thrs85precip <- ts2clm(data = precipitationData, x = t, y = precip, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 85)
+res3 <- filter(thrs85precip, t >= "1980-01-01") #filter for study years 
+out3 <- detect_event(res3, x = t, y = precip, minDuration = 1)
+precip3 <- block_average(out3, x = t, y = precip)
+
+thrs85_exceeded <- res3 |> 
+    separate(t, c("year", "month", "date"), sep = "-") |> 
+    group_by(year) |> 
+    summarise(yearlyCount = sum(precip > thresh))
+
+thrs85_exceeded$year <- as.numeric(thrs85_exceeded$year)
+thrs85_exceeded$yearlyCount <- as.numeric(thrs85_exceeded$yearlyCount)
+
+thrs85precipPlot <- ggplot(data = thrs85_exceeded, aes(x = year, y = yearlyCount)) + 
+        geom_point(colour = "red") + 
+        geom_line() + 
+        labs(x = "year", y = "number of events")
+
+ggsave(filename = "plots/thresholds_precip/85.pdf", plot = thrs85precipPlot)
+
+#99% threshold 
+thrs99precip <- ts2clm(data = precipitationData, x = t, y = precip, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 99)
+res4 <- filter(thrs99precip, t >= "1980-01-01") #filter for study years 
+out4 <- detect_event(res4, x = t, y = precip, minDuration = 1)
+precip4 <- block_average(out4, x = t, y = precip)
+
+thrs99_exceeded <- res4 |> 
+    separate(t, c("year", "month", "date"), sep = "-") |> 
+    group_by(year) |> 
+    summarise(yearlyCount = sum(precip > thresh))
+
+thrs99_exceeded$year <- as.numeric(thrs99_exceeded$year)
+thrs99_exceeded$yearlyCount <- as.numeric(thrs99_exceeded$yearlyCount)
+
+thrs99precipPlot <- ggplot(data = thrs99_exceeded, aes(x = year, y = yearlyCount)) + 
+        geom_point(colour = "red") + 
+        geom_line() + 
+        labs(x = "year", y = "number of events")
+
+ggsave(filename = "plots/thresholds_precip/99.pdf", plot = thrs99precipPlot)
+
+
+##15/04 - Abundance Analysis and Regression ---- 
+#Now that I have all of the temperature and precipitation data, I can go through and compare it 
+#to the abundance data I previously collected for the population of brown trout at the sampling site 
+
+#Population abundance 
+salmoDataTable 
+
+#Calculate log of growth rate 
+growthRates <- salmoDataTable |> 
+    mutate(growth_rate = log10(Abunance / lag(Abunance)))
+
+growthRates$year <- as.numeric(growthRates$year)
+
+#First, consider heatwaves with a minimum duration of 3 days and a 95% threshold
+regression1 <- growthRates |> 
+    left_join(heatwaves3a[,1:2], by = "year") |> 
+    rename(heatwaves = count) |> 
+    mutate(heatwaves_prev = lag(heatwaves)) |> 
+    select(!heatwaves)
+
+lm1 <- lm(growth_rate ~ heatwaves_prev, data = regression1)
+
+summary(lm1)
+
+#Now, go again with a minimum duration of 3 days and a 90% threshold 
+regression2 <- growthRates |> 
+    left_join(heatwaves3b[,1:2], by = "year") |> 
+    rename(heatwaves = count) |> 
+    mutate(heatwaves_prev = lag(heatwaves)) |> 
+    select(!heatwaves)
+
+lm2 <- lm(growth_rate ~ heatwaves_prev, data = regression2)
+
+summary(lm2)
+
+#2 days and 95% threshold 
+regression3 <- growthRates |> 
+    left_join(heatwaves2a[,1:2], by = "year") |> 
+    rename(heatwaves = count) |> 
+    mutate(heatwaves_prev = lag(heatwaves)) |> 
+    select(!heatwaves)
+
+lm3 <- lm(growth_rate ~ heatwaves_prev, data = regression3)
+
+summary(lm3)
+
+#2 days and 90% threshold 
+regression4 <- growthRates |> 
+    left_join(heatwaves2b[,1:2], by = "year") |> 
+    rename(heatwaves = count) |> 
+    mutate(heatwaves_prev = lag(heatwaves)) |> 
+    select(!heatwaves)
+
+lm4 <- lm(growth_rate ~ heatwaves_prev, data = regression4)
+
+summary(lm4)
+
+#1 day and 95% threshold 
+regression5 <- growthRates |> 
+    left_join(heatwaves1a[,1:2], by = "year") |> 
+    rename(heatwaves = count) |> 
+    mutate(heatwaves_prev = lag(heatwaves)) |> 
+    select(!heatwaves)
+
+lm5 <- lm(growth_rate ~ heatwaves_prev, data = regression5)
+
+summary(lm5)
+
+#1 day 90% threshold 
+regression6 <- growthRates |> 
+    left_join(heatwaves1b[,1:2], by = "year") |> 
+    rename(heatwaves = count) |> 
+    mutate(heatwaves_prev = lag(heatwaves)) |> 
+    select(!heatwaves)
+
+lm6 <- lm(growth_rate ~ heatwaves_prev, data = regression6)
+
+summary(lm6)
+
+#So far, none of these models have produced significant results, therefore I want to 
+#try running heatwaveR with a minimum duration of 4 days because it appears that, as the minimum 
+#duration increases with a 95% threshold, results starts to become more significant 
+
+#4 days 95% threshold 
+thrs95dur4 <- ts2clm(data = heatwaveData, x = t, y = temp, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 95)
+res4a <- filter(thrs95dur4, t >= "1980-01-01")
+out4a <- detect_event(res4a, minDuration = 4)
+heatwaves4a <- block_average(out4a)
+
+regression7 <- growthRates |> 
+    left_join(heatwaves4a[,1:2], by = "year") |> 
+    rename(heatwaves = count) |> 
+    mutate(heatwaves_prev = lag(heatwaves)) |> 
+    select(!heatwaves)
+
+lm7 <- lm(growth_rate ~ heatwaves_prev, data = regression7)
+
+summary(lm7)
+
+#4 days 90% threshold
+thrs90dur4 <- ts2clm(data = heatwaveData, x = t, y = temp, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 90)
+res4b <- filter(thrs90dur4, t >= "1980-01-01")
+out4b <- detect_event(res4b, minDuration = 4)
+heatwaves4b <- block_average(out4b)
+
+regression8 <- growthRates |> 
+    left_join(heatwaves4b[,1:2], by = "year") |> 
+    rename(heatwaves = count) |> 
+    mutate(heatwaves_prev = lag(heatwaves)) |> 
+    select(!heatwaves)
+
+lm8 <- lm(growth_rate ~ heatwaves_prev, data = regression8)
+
+summary(lm8)
+
+#Even with minimum duration of 4 days there are no significant observed effects of heatwaves on population growth, therefore 
+#I might have to go back and rethink my definition, for example I could add an extra variable for the total number of days 
+#in the previous year that exceeded the threshold for a given day. 
+
+#For now, I will repreat the above process with the precipitation data 
+
+#Start with 95% threshold 
+regression9 <- growthRates |> 
+    left_join(thrs95_exceeded, by = "year") |> 
+    rename(precipitation = yearlyCount) |> 
+    mutate(precip_prev = lag(precipitation)) |> 
+    select(!precipitation)
+
+lm9 <- lm(growth_rate ~ precip_prev, data = regression9)
+
+summary(lm9)
+
+#90% threshold 
+regression10 <- growthRates |> 
+    left_join(thrs90_exceeded, by = "year") |> 
+    rename(precipitation = yearlyCount) |> 
+    mutate(precip_prev = lag(precipitation)) |> 
+    select(!precipitation)
+
+lm10 <- lm(growth_rate ~ precip_prev, data = regression10)
+
+summary(lm10)
+
+#85% threshold 
+regression11 <- growthRates |> 
+    left_join(thrs85_exceeded, by = "year") |> 
+    rename(precipitation = yearlyCount) |> 
+    mutate(precip_prev = lag(precipitation)) |> 
+    select(!precipitation)
+
+lm11 <- lm(growth_rate ~ precip_prev, data = regression11)
+
+summary(lm11)
+
+#99% threshold 
+regression12 <- growthRates |> 
+    left_join(thrs99_exceeded, by = "year") |> 
+    rename(precipitation = yearlyCount) |> 
+    mutate(precip_prev = lag(precipitation)) |> 
+    select(!precipitation)
+
+lm12 <- lm(growth_rate ~ precip_prev, data = regression12)
+
+summary(lm12)
+
+#I now want to try combining precipitation and temperature data into one multiple regression model. 
+#I will start with a 95% threshold for precipitation and a minimum of 3 day heatwaves with a 95% threshold 
+regression13 <- growthRates |> 
+    left_join(heatwaves3a[,1:2], by = "year") |> 
+    left_join(thrs95_exceeded, by = "year") |> 
+    rename(heatwaves = count, precipitation = yearlyCount) |> 
+    mutate(heatwaves_prev = lag(heatwaves)) |> 
+    mutate(precip_prev = lag(precipitation)) |> 
+    select(!heatwaves & !precipitation)
+
+lm13 <- lm(growth_rate ~ heatwaves_prev + precip_prev, data = regression13)
+
+summary(lm13)
+
+#Try 90% threshold with 3 day minimum for heatwaves 
+regression14 <- growthRates |> 
+    left_join(heatwaves3b[,1:2], by = "year") |> 
+    left_join(thrs90_exceeded, by = "year") |> 
+    rename(heatwaves = count, precipitation = yearlyCount) |> 
+    mutate(heatwaves_prev = lag(heatwaves)) |> 
+    mutate(precip_prev = lag(precipitation)) |> 
+    select(!heatwaves & !precipitation)
+
+lm14 <- lm(growth_rate ~ heatwaves_prev + precip_prev, data = regression14)
+
+summary(lm14)
+
+#Try holding abundance as a fixed effect 
+
+regression15 <- growthRates |> 
+    left_join(heatwaves3a[,1:2], by = "year") |> 
+    left_join(thrs95_exceeded, by = "year") |> 
+    rename(heatwaves = count, precipitation = yearlyCount) |> 
+    mutate(heatwaves_prev = lag(heatwaves)) |> 
+    mutate(precip_prev = lag(precipitation)) |> 
+    mutate(abundance_prev = lag(Abunance)) |>
+    select(!heatwaves & !precipitation & !Abunance)
+
+lm15 <- lm(growth_rate ~ precip_prev | abundance_prev, data = regression15)
+
+summary(lm5)
