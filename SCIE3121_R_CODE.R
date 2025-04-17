@@ -121,7 +121,7 @@ G11473A_SalmoDat <- select(G11473A_SalmoDat, !TimeSeriesID & !SurveyID & !Specie
 salmoDataTable <- data.table(G11473A_SalmoDat) |> 
     group_by(Year) |> 
     rename(year = Year) |>
-    summarise(Abunance = max(Abundance)) #updated this to select the maximum abundance instead of the mean - more accurate in this study
+    summarise(Abundance = max(Abundance)) #updated this to select the maximum abundance instead of the mean - more accurate in this study
 
 pdf("plots/Salmo_trutta.pdf", width = 6, height = 5)
 plot(salmoDataTable$Year, salmoDataTable$Abunance, type = "l", xlab = "time", ylab = "abundance")
@@ -833,202 +833,344 @@ ggsave(filename = "plots/thresholds_precip/99.pdf", plot = thrs99precipPlot)
 #Population abundance 
 salmoDataTable 
 
+salmoDataTable$year <- as.numeric(salmoDataTable$year)
+
+library(dplyr)
+
 #Calculate log of growth rate 
 growthRates <- salmoDataTable |> 
-    mutate(growth_rate = log10(Abunance / lag(Abunance)))
+    mutate(growth_rate = log(Abundance + 1) - log(dplyr::lag(Abundance + 1)))  #+1 to minimise error if population = 0
 
-growthRates$year <- as.numeric(growthRates$year)
-
-#First, consider heatwaves with a minimum duration of 3 days and a 95% threshold
+#I can now do a sensitivity test with different thresholds and minimum durations 
+#First, consider heatwaves with a minimum duration of 1 day and a 90% threshold
 regression1 <- growthRates |> 
-    left_join(heatwaves3a[,1:2], by = "year") |> 
-    rename(heatwaves = count) |> 
-    mutate(heatwaves_prev = lag(heatwaves)) |> 
-    select(!heatwaves)
+    left_join(heatwaves1b[,1:2], by = "year") |> 
+    rename(heatwaves = count) |>
+    mutate(heatwaves_prev = dplyr::lag(heatwaves)) |> 
+    select(!heatwaves) |> 
+    filter(year > 1980)
 
 lm1 <- lm(growth_rate ~ heatwaves_prev, data = regression1)
 
 summary(lm1)
+anova(lm1)
 
-#Now, go again with a minimum duration of 3 days and a 90% threshold 
+plot1 <- ggplot(data = regression1, aes(x = heatwaves_prev, y = growth_rate)) +  
+    geom_point() + 
+    geom_smooth(aes(x = heatwaves_prev, y = growth_rate), method = 'lm') + 
+    labs(x = "number of heatwaves", y = "log(growth rate)", title = "90% threshold, 1 day")
+
+ggsave(filename = "plots/regression_plots/regression1.pdf", plot = plot1)
+
+#Now, try a minimum duration of 1 day and a 95% threshold 
 regression2 <- growthRates |> 
-    left_join(heatwaves3b[,1:2], by = "year") |> 
+    left_join(heatwaves1a[,1:2], by = "year") |> 
     rename(heatwaves = count) |> 
-    mutate(heatwaves_prev = lag(heatwaves)) |> 
-    select(!heatwaves)
+    mutate(heatwaves_prev = dplyr::lag(heatwaves)) |>
+    select(!heatwaves) |>
+    filter(year > 1980)
 
 lm2 <- lm(growth_rate ~ heatwaves_prev, data = regression2)
 
 summary(lm2)
+anova(lm2)
 
-#2 days and 95% threshold 
+plot2 <- ggplot(data = regression2, aes(x = heatwaves_prev, y = growth_rate)) +  
+    geom_point() + 
+    geom_smooth(aes(x = heatwaves_prev, y = growth_rate), method = 'lm') + 
+    labs(x = "number of heatwaves", y = "log(growth rate)", title = "95% threshold, 1 day")
+
+ggsave(filename = "plots/regression_plots/regression2.pdf", plot = plot2)
+
+#Minimum duration of 2 days and a 90% threshold 
 regression3 <- growthRates |> 
-    left_join(heatwaves2a[,1:2], by = "year") |> 
+    left_join(heatwaves2b[,1:2], by = "year") |> 
     rename(heatwaves = count) |> 
-    mutate(heatwaves_prev = lag(heatwaves)) |> 
-    select(!heatwaves)
+    mutate(heatwaves_prev = dplyr::lag(heatwaves)) |> 
+    select(!heatwaves) |> 
+    filter(year > 1980)
 
 lm3 <- lm(growth_rate ~ heatwaves_prev, data = regression3)
 
 summary(lm3)
+anova(lm3) 
 
-#2 days and 90% threshold 
+plot3 <- ggplot(data = regression3, aes(x = heatwaves_prev, y = growth_rate)) +  
+    geom_point() + 
+    geom_smooth(aes(x = heatwaves_prev, y = growth_rate), method = 'lm') + 
+    labs(x = "number of heatwaves", y = "log(growth rate)", title = "90% threshold, 2 days")
+
+ggsave(filename = "plots/regression_plots/regression3.pdf", plot = plot3)
+
+#Minimum duration of 2 days, 95% threshold
 regression4 <- growthRates |> 
-    left_join(heatwaves2b[,1:2], by = "year") |> 
+    left_join(heatwaves2a[,1:2], by = "year") |> 
     rename(heatwaves = count) |> 
-    mutate(heatwaves_prev = lag(heatwaves)) |> 
-    select(!heatwaves)
+    mutate(heatwaves_prev = dplyr::lag(heatwaves)) |> 
+    select(!heatwaves) |>
+    filter(year > 1980)
 
 lm4 <- lm(growth_rate ~ heatwaves_prev, data = regression4)
 
 summary(lm4)
+anova(lm4)
 
-#1 day and 95% threshold 
+plot4 <- ggplot(data = regression4, aes(x = heatwaves_prev, y = growth_rate)) +  
+    geom_point() + 
+    geom_smooth(aes(x = heatwaves_prev, y = growth_rate), method = 'lm') + 
+    labs(x = "number of heatwaves", y = "log(growth rate)", title = "95% threshold, 2 days")
+
+ggsave(filename = "plots/regression_plots/regression4.pdf", plot = plot4)
+
+#Minimum duration of 3 days, 90% threshold 
 regression5 <- growthRates |> 
-    left_join(heatwaves1a[,1:2], by = "year") |> 
+    left_join(heatwaves3b[,1:2], by = "year") |> 
     rename(heatwaves = count) |> 
-    mutate(heatwaves_prev = lag(heatwaves)) |> 
-    select(!heatwaves)
+    mutate(heatwaves_prev = dplyr::lag(heatwaves)) |> 
+    select(!heatwaves) |> 
+    filter(year > 1980)
 
 lm5 <- lm(growth_rate ~ heatwaves_prev, data = regression5)
 
 summary(lm5)
+anova(lm5)
 
-#1 day 90% threshold 
+plot5 <- ggplot(data = regression5, aes(x = heatwaves_prev, y = growth_rate)) +  
+    geom_point() + 
+    geom_smooth(aes(x = heatwaves_prev, y = growth_rate), method = 'lm') + 
+    labs(x = "number of heatwaves", y = "log(growth rate)", title = "90% threshold, 3 days")
+
+ggsave(filename = "plots/regression_plots/regression5.pdf", plot = plot5)
+
+#Minimum duration of 3 days, 95% threshold 
 regression6 <- growthRates |> 
-    left_join(heatwaves1b[,1:2], by = "year") |> 
+    left_join(heatwaves3a[,1:2], by = "year") |> 
     rename(heatwaves = count) |> 
-    mutate(heatwaves_prev = lag(heatwaves)) |> 
+    mutate(heatwaves_prev = dplyr::lag(heatwaves)) |> 
     select(!heatwaves)
 
 lm6 <- lm(growth_rate ~ heatwaves_prev, data = regression6)
 
 summary(lm6)
+anova(lm6) 
 
-#So far, none of these models have produced significant results, therefore I want to 
-#try running heatwaveR with a minimum duration of 4 days because it appears that, as the minimum 
-#duration increases with a 95% threshold, results starts to become more significant 
+plot6 <- ggplot(data = regression6, aes(x = heatwaves_prev, y = growth_rate)) +  
+    geom_point() + 
+    geom_smooth(aes(x = heatwaves_prev, y = growth_rate), method = 'lm') + 
+    labs(x = "number of heatwaves", y = "log(growth rate)", title = "95% threshold, 3 days")
 
-#4 days 95% threshold 
-thrs95dur4 <- ts2clm(data = heatwaveData, x = t, y = temp, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 95)
-res4a <- filter(thrs95dur4, t >= "1980-01-01")
-out4a <- detect_event(res4a, minDuration = 4)
-heatwaves4a <- block_average(out4a)
+ggsave(filename = "plots/regression_plots/regression6.pdf", plot = plot6)
 
-regression7 <- growthRates |> 
-    left_join(heatwaves4a[,1:2], by = "year") |> 
-    rename(heatwaves = count) |> 
-    mutate(heatwaves_prev = lag(heatwaves)) |> 
-    select(!heatwaves)
+#So far, it appears that there is a stronger effect of heatwaves on the population abundance 
+#using a 95% threshold as opposed to a 90% threshold, and it is slightly stronger with a minimum duration 
+#of two days followed by three days. Interestingly, 1 day minimum with 90% threshold had the strongest effect. 
+#All of these models have a positive effect on growth rate
 
-lm7 <- lm(growth_rate ~ heatwaves_prev, data = regression7)
+#I want to try running heatwaveR with a minimum duration of 4 days to make sure that the effect 
+#continues to become less significant with longer minimum duration
 
-summary(lm7)
-
-#4 days 90% threshold
+#Minimum duration of 4 days, 90% threshold
 thrs90dur4 <- ts2clm(data = heatwaveData, x = t, y = temp, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 90)
 res4b <- filter(thrs90dur4, t >= "1980-01-01")
 out4b <- detect_event(res4b, minDuration = 4)
 heatwaves4b <- block_average(out4b)
 
-regression8 <- growthRates |> 
+regression7 <- growthRates |> 
     left_join(heatwaves4b[,1:2], by = "year") |> 
     rename(heatwaves = count) |> 
-    mutate(heatwaves_prev = lag(heatwaves)) |> 
+    mutate(heatwaves_prev = dplyr::lag(heatwaves)) |> 
     select(!heatwaves)
+    filter(year > 1980)
+
+lm7 <- lm(growth_rate ~ heatwaves_prev, data = regression7)
+
+summary(lm7)
+anova(lm7)
+
+plot7 <- ggplot(data = regression7, aes(x = heatwaves_prev, y = growth_rate)) +  
+    geom_point() + 
+    geom_smooth(aes(x = heatwaves_prev, y = growth_rate), method = 'lm') + 
+    labs(x = "number of heatwaves", y = "log(growth rate)", title = "90% threshold, 4 days")
+
+ggsave(filename = "plots/regression_plots/regression7.pdf", plot = plot7)
+
+#Minimum duration of 4 days, 95% threshold 
+thrs95dur4 <- ts2clm(data = heatwaveData, x = t, y = temp, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 95)
+res4a <- filter(thrs95dur4, t >= "1980-01-01")
+out4a <- detect_event(res4a, minDuration = 4)
+heatwaves4a <- block_average(out4a)
+
+regression8 <- growthRates |> 
+    left_join(heatwaves4a[,1:2], by = "year") |> 
+    rename(heatwaves = count) |> 
+    mutate(heatwaves_prev = dplyr::lag(heatwaves)) |> 
+    select(!heatwaves)
+    filter(year > 1980)
 
 lm8 <- lm(growth_rate ~ heatwaves_prev, data = regression8)
 
 summary(lm8)
+anova(lm8)
 
-#Even with minimum duration of 4 days there are no significant observed effects of heatwaves on population growth, therefore 
-#I might have to go back and rethink my definition, for example I could add an extra variable for the total number of days 
-#in the previous year that exceeded the threshold for a given day. 
+plot8 <- ggplot(data = regression8, aes(x = heatwaves_prev, y = growth_rate)) +  
+    geom_point() + 
+    geom_smooth(aes(x = heatwaves_prev, y = growth_rate), method = 'lm') + 
+    labs(x = "number of heatwaves", y = "log(growth rate)", title = "95% threshold, 4 days")
 
-#For now, I will repreat the above process with the precipitation data 
+ggsave(filename = "plots/regression_plots/regression8.pdf", plot = plot8)
+
+#With minimum duration of 4 days there are no significant observed effects of heatwaves on population growth 
+
+#A lot of unexplained variation in the models meaning I should reconsider my definitions of heatwaves to potentially include 
+#an extra factor which considers the number of total days in each year that exceed the given threshold 
+
+#For now I can repreat the above process with the precipitation data 
 
 #Start with 95% threshold 
 regression9 <- growthRates |> 
     left_join(thrs95_exceeded, by = "year") |> 
     rename(precipitation = yearlyCount) |> 
-    mutate(precip_prev = lag(precipitation)) |> 
-    select(!precipitation)
+    mutate(precip_prev = dplyr::lag(precipitation)) |> 
+    select(!precipitation) |>
+    filter(year > 1980)
 
 lm9 <- lm(growth_rate ~ precip_prev, data = regression9)
 
 summary(lm9)
+anova(lm9)
+
+plot9 <- ggplot(data = regression9, aes(x = precip_prev, y = growth_rate)) +  
+    geom_point() + 
+    geom_smooth(aes(x = precip_prev, y = growth_rate), method = 'lm') + 
+    labs(x = "number of days of extreme precipitation", y = "log(growth rate)", title = "95% threshold")
+
+ggsave(filename = "plots/regression_plots/regression9.pdf", plot = plot9)
 
 #90% threshold 
 regression10 <- growthRates |> 
     left_join(thrs90_exceeded, by = "year") |> 
     rename(precipitation = yearlyCount) |> 
-    mutate(precip_prev = lag(precipitation)) |> 
-    select(!precipitation)
+    mutate(precip_prev = dplyr::lag(precipitation)) |> 
+    select(!precipitation) |>
+    filter(year > 1980)
 
 lm10 <- lm(growth_rate ~ precip_prev, data = regression10)
 
 summary(lm10)
+anova(lm10)
+
+plot10 <- ggplot(data = regression10, aes(x = precip_prev, y = growth_rate)) +  
+    geom_point() + 
+    geom_smooth(aes(x = precip_prev, y = growth_rate), method = 'lm') + 
+    labs(x = "number of days of extreme precipitation", y = "log(growth rate)", title = "90% threshold")
+
+ggsave(filename = "plots/regression_plots/regression10.pdf", plot = plot10)
 
 #85% threshold 
 regression11 <- growthRates |> 
     left_join(thrs85_exceeded, by = "year") |> 
     rename(precipitation = yearlyCount) |> 
-    mutate(precip_prev = lag(precipitation)) |> 
-    select(!precipitation)
+    mutate(precip_prev = dplyr::lag(precipitation)) |> 
+    select(!precipitation) |>
+    filter(year > 1980)
 
 lm11 <- lm(growth_rate ~ precip_prev, data = regression11)
 
 summary(lm11)
+anova(lm11)
+
+plot11 <- ggplot(data = regression11, aes(x = precip_prev, y = growth_rate)) +  
+    geom_point() + 
+    geom_smooth(aes(x = precip_prev, y = growth_rate), method = 'lm') + 
+    labs(x = "number of days of extreme precipitation", y = "log(growth rate)", title = "85% threshold")
+
+ggsave(filename = "plots/regression_plots/regression11.pdf", plot = plot11)
 
 #99% threshold 
 regression12 <- growthRates |> 
     left_join(thrs99_exceeded, by = "year") |> 
     rename(precipitation = yearlyCount) |> 
-    mutate(precip_prev = lag(precipitation)) |> 
-    select(!precipitation)
+    mutate(precip_prev = dplyr::lag(precipitation)) |> 
+    select(!precipitation) |> 
+    filter(year > 1980)
 
 lm12 <- lm(growth_rate ~ precip_prev, data = regression12)
 
 summary(lm12)
+anova(lm12)
 
-#I now want to try combining precipitation and temperature data into one multiple regression model. 
+plot12 <- ggplot(data = regression12, aes(x = precip_prev, y = growth_rate)) +  
+    geom_point() + 
+    geom_smooth(aes(x = precip_prev, y = growth_rate), method = 'lm') + 
+    labs(x = "number of days of extreme precipitation", y = "log(growth rate)", title = "99% threshold")
+
+ggsave(filename = "plots/regression_plots/regression12.pdf", plot = plot12)
+
+#In the case of precipitation, the effect on population growth rate is strongest with a 95% threshold but is positive. 
+
+#Same as with lm1, lm4 and lm6, there is a lot of unexplained variation. Combining the two variables into a multiple 
+#regression might remove some of the unexplained variation.
+
 #I will start with a 95% threshold for precipitation and a minimum of 3 day heatwaves with a 95% threshold 
 regression13 <- growthRates |> 
     left_join(heatwaves3a[,1:2], by = "year") |> 
     left_join(thrs95_exceeded, by = "year") |> 
     rename(heatwaves = count, precipitation = yearlyCount) |> 
-    mutate(heatwaves_prev = lag(heatwaves)) |> 
-    mutate(precip_prev = lag(precipitation)) |> 
-    select(!heatwaves & !precipitation)
+    mutate(heatwaves_prev = dplyr::lag(heatwaves)) |> 
+    mutate(precip_prev = dplyr::lag(precipitation)) |> 
+    select(!heatwaves & !precipitation) |> 
+    filter(year > 1980)
 
-lm13 <- lm(growth_rate ~ heatwaves_prev + precip_prev, data = regression13)
+lm13 <- lm(growth_rate ~ heatwaves_prev * precip_prev, data = regression13)
 
 summary(lm13)
+anova(lm13)
 
-#Try 90% threshold with 3 day minimum for heatwaves 
+#95% threshold for precipitation, minimum duration of 2 day heatwaves with 95% threshold
 regression14 <- growthRates |> 
-    left_join(heatwaves3b[,1:2], by = "year") |> 
-    left_join(thrs90_exceeded, by = "year") |> 
-    rename(heatwaves = count, precipitation = yearlyCount) |> 
-    mutate(heatwaves_prev = lag(heatwaves)) |> 
-    mutate(precip_prev = lag(precipitation)) |> 
-    select(!heatwaves & !precipitation)
-
-lm14 <- lm(growth_rate ~ heatwaves_prev + precip_prev, data = regression14)
-
-summary(lm14)
-
-#Try holding abundance as a fixed effect 
-
-regression15 <- growthRates |> 
-    left_join(heatwaves3a[,1:2], by = "year") |> 
+    left_join(heatwaves2a[,1:2], by = "year") |> 
     left_join(thrs95_exceeded, by = "year") |> 
     rename(heatwaves = count, precipitation = yearlyCount) |> 
-    mutate(heatwaves_prev = lag(heatwaves)) |> 
-    mutate(precip_prev = lag(precipitation)) |> 
-    mutate(abundance_prev = lag(Abunance)) |>
-    select(!heatwaves & !precipitation & !Abunance)
+    mutate(heatwaves_prev = dplyr::lag(heatwaves)) |> 
+    mutate(precip_prev = dplyr::lag(precipitation)) |> 
+    select(!heatwaves & !precipitation) |> 
+    filter(year > 1980)
 
-lm15 <- lm(growth_rate ~ precip_prev | abundance_prev, data = regression15)
+lm14 <- lm(growth_rate ~ heatwaves_prev * precip_prev, data = regression14)
 
-summary(lm5)
+summary(lm14)
+anova(lm14)
+
+#95% threshold for precipitation, minimum duration of 1 day heatwaves with 90% threshold 
+regression15 <- growthRates |> 
+    left_join(heatwaves1b[,1:2], by = "year") |> 
+    left_join(thrs95_exceeded, by = "year") |> 
+    rename(heatwaves = count, precipitation = yearlyCount) |> 
+    mutate(heatwaves_prev = dplyr::lag(heatwaves)) |> 
+    mutate(precip_prev = dplyr::lag(precipitation)) |> 
+    select(!heatwaves & !precipitation) |> 
+    filter(year > 1980)
+
+lm15 <- lm(growth_rate ~ heatwaves_prev * precip_prev, data = regression15)
+
+summary(lm15)
+anova(lm15)
+
+#I also want to try and consider abundance in the previous year as a covariate to see how it affects
+#population growth rate 
+
+#Add abundance as a variable 
+regression16 <- growthRates |> 
+    left_join(heatwaves2a[,1:2], by = "year") |> 
+    left_join(thrs95_exceeded, by = "year") |> 
+    rename(heatwaves = count, precipitation = yearlyCount) |> 
+    mutate(heatwaves_prev = dplyr::lag(heatwaves)) |> 
+    mutate(precip_prev = dplyr::lag(precipitation)) |> 
+    mutate(abundance_prev = dplyr::lag(Abundance)) |>
+    select(!heatwaves & !precipitation & !Abundance) |> 
+    filter(year > 1980)
+
+lm16 <- lm(growth_rate ~ heatwaves_prev * precip_prev * abundance_prev , data = regression16)
+
+summary(lm16)
+anova(lm16)
