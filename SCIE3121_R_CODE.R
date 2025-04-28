@@ -124,7 +124,7 @@ salmoDataTable <- data.table(G11473A_SalmoDat) |>
     summarise(Abundance = max(Abundance)) #updated this to select the maximum abundance instead of the mean - more accurate in this study
 
 pdf("plots/Salmo_trutta.pdf", width = 6, height = 5)
-plot(salmoDataTable$Year, salmoDataTable$Abunance, type = "l", xlab = "time", ylab = "abundance")
+plot(salmoDataTable$year, salmoDataTable$Abundance, type = "l", xlab = "time", ylab = "abundance")
 title(main = "Salmo trutta - G11473")
 dev.off()
 
@@ -561,7 +561,7 @@ heatwaves3a <- block_average(out3a)
 
 summary(glm(count ~ year, family = "poisson", data = heatwaves3a))
 
-thrs95dur3Num <- ggplot(data = heatwaves3a, aes(x = year, y = count)) + 
+thrs95dur3Num <- ggplot(data = newheatwaves3a, aes(x = heatwave_year, y = n_heatwaves)) + 
     geom_point(colour = "red") + 
     geom_line() + 
     labs(x = "year", y = "number of events")
@@ -1162,15 +1162,158 @@ anova(lm15)
 #Add abundance as a variable 
 regression16 <- growthRates |> 
     left_join(heatwaves2a[,1:2], by = "year") |> 
-    left_join(thrs95_exceeded, by = "year") |> 
-    rename(heatwaves = count, precipitation = yearlyCount) |> 
+    rename(heatwaves = count) |> 
     mutate(heatwaves_prev = dplyr::lag(heatwaves)) |> 
-    mutate(precip_prev = dplyr::lag(precipitation)) |> 
     mutate(abundance_prev = dplyr::lag(Abundance)) |>
-    select(!heatwaves & !precipitation & !Abundance) |> 
+    select(!heatwaves & !Abundance) |> 
     filter(year > 1980)
 
 lm16 <- lm(growth_rate ~ heatwaves_prev * precip_prev * abundance_prev , data = regression16)
 
 summary(lm16)
 anova(lm16)
+
+
+
+##19/04 - Updates to regression models 
+
+#I want to find a new way to define the heatwave variables. For example, all of the abundance estimates were recorded 
+#in either quater 3 or quater 4, meaning that I could instead count the number of heatwaves that occur between July of 
+#the previous year and June of the current year. This could more accurately describe the number of heatwave events 
+#that occurred between the abundance observation at year t - 1 and year t. 
+
+#To test this, I can refedine a few of the heatwave variables (ie change a few parameters)
+
+
+
+#Try with 1 day minimum heatwaves with 90% threshold 
+newheatwaves1b <- out1b$event |> 
+    mutate(heatwave_year = if_else(month(date_start) >= 07, 
+                                     as.integer(year(date_start)), 
+                                     as.integer(year(date_start) - 1))) |> 
+    select(event_no, duration, date_start, date_end, heatwave_year) |> 
+    group_by(heatwave_year) |>
+    count(heatwave_year, name = "n_heatwaves") |> 
+    rename(year = heatwave_year, count = n_heatwaves)
+
+
+regression1b <- growthRates |> 
+    left_join(newheatwaves1b, by = "year") |> 
+    rename(heatwaves = count) |> 
+    mutate(heatwaves_prev = dplyr::lag(heatwaves)) |> 
+    select(!heatwaves)
+
+lm1b <- lm(growth_rate ~ heatwaves_prev, data = regression1b)
+
+summary(lm1b)
+anova(lm1b)
+
+plot1b <- ggplot(data = regression1b, aes(x = heatwaves_prev, y = growth_rate)) +  
+    geom_point() + 
+    geom_smooth(aes(x = heatwaves_prev, y = growth_rate), method = 'lm') + 
+    labs(x = "number of heatwaves", y = "log(growth rate)", title = "90% threshold, 1 day")
+
+#2 day minimum, 95% threshold 
+newheatwaves2a <- out2a$event |> 
+    mutate(heatwave_year = if_else(month(date_start) >= 07, 
+                                     as.integer(year(date_start)), 
+                                     as.integer(year(date_start) - 1))) |> 
+    select(event_no, duration, date_start, date_end, heatwave_year) |> 
+    group_by(heatwave_year) |>
+    count(heatwave_year, name = "n_heatwaves") |> 
+    rename(year = heatwave_year, count = n_heatwaves)
+
+
+regression4b <- growthRates |> 
+    left_join(newheatwaves2a, by = "year") |> 
+    rename(heatwaves = count) |> 
+    mutate(heatwaves_prev = dplyr::lag(heatwaves)) |> 
+    select(!heatwaves)
+
+lm4b <- lm(growth_rate ~ heatwaves_prev, data = regression4b)
+
+summary(lm4b)
+anova(lm4b)
+
+plot4b <- ggplot(data = regression4b, aes(x = heatwaves_prev, y = growth_rate)) +  
+    geom_point() + 
+    geom_smooth(aes(x = heatwaves_prev, y = growth_rate), method = 'lm') + 
+    labs(x = "number of heatwaves", y = "log(growth rate)", title = "95% threshold, 2 day")
+
+##Try 99% threshold for 3 days 
+newheatwaves3d <- out3d$event |> 
+    mutate(heatwave_year = if_else(month(date_start) >= 07, 
+                                     as.integer(year(date_start)), 
+                                     as.integer(year(date_start) - 1))) |> 
+    select(event_no, duration, date_start, date_end, heatwave_year) |> 
+    group_by(heatwave_year) |>
+    count(heatwave_year, name = "n_heatwaves") |> 
+    rename(year = heatwave_year, count = n_heatwaves)
+
+regression_99 <- growthRates |> 
+    left_join(newheatwaves3d, by = "year") |> 
+    rename(heatwaves = count) |> 
+    mutate(heatwaves_prev = dplyr::lag(heatwaves), 
+           heatwaves_prev = replace_na(heatwaves_prev, 0)) |> 
+    select(!heatwaves) 
+
+lm99 <- lm(growth_rate ~ heatwaves_prev, data = regression_99)
+
+summary(lm99)
+anova(lm99)
+
+plot99 <- ggplot(data = regression_99, aes(x = heatwaves_prev, y = growth_rate)) +  
+    geom_point() + 
+    geom_smooth(aes(x = heatwaves_prev, y = growth_rate), method = 'lm') + 
+    labs(x = "number of heatwaves", y = "log(growth rate)", title = "99% threshold, 3 day")
+
+#Issue might be that i need to set threshold to over 99% - positive effect when threshold is 95% or less, 
+#negative effect if over 95%
+
+
+##28/04 - Refining my analysis 
+
+yearlyTempAvg <- heatwaveData |> 
+    mutate(year = if_else(month(t) >= 07, 
+                                as.integer(year(t)),
+                                as.integer(year(t) - 1))) |> 
+    group_by(year) |> 
+    summarise(yearlyMean = mean(temp)) |> 
+    filter(year >= 1980)
+
+thrs95exceeded_heatwaves <- res3a |> 
+    mutate(year = if_else(month(t) >= 07, 
+                                as.integer(year(t)),
+                                as.integer(year(t) - 1))) |> 
+    group_by(year) |> 
+    summarise(yearlyExceeded = sum(temp > thresh)) |> 
+    filter(year >= 1980)
+
+newHeatwaves1 <- out3a$event |> 
+    mutate(heatwave_year = if_else(month(date_start) >= 07, 
+                                     as.integer(year(date_start)), 
+                                     as.integer(year(date_start) - 1))) |> 
+    select(event_no, duration, date_start, date_end, heatwave_year) |> 
+    group_by(heatwave_year) |>
+    count(heatwave_year, name = "n_heatwaves") |> 
+    rename(year = heatwave_year, count = n_heatwaves)
+    
+newRegression1 <- growthRates |> 
+    left_join(newHeatwaves1, by = "year") |> 
+    left_join(yearlyTempAvg, by = "year") |>
+    left_join(thrs95exceeded_heatwaves, by = "year") |> 
+    rename(heatwaves = count) |> 
+    rename(heatDays = yearlyExceeded) |>
+    mutate(heatwaves_prev = dplyr::lag(heatwaves)) |> 
+    mutate(abundance_prev = dplyr::lag(Abundance)) |> 
+    mutate(temp_prev = dplyr::lag(yearlyMean)) |>
+    mutate(heatDays_prev = dplyr::lag(heatDays)) |>
+    select(!heatwaves & !Abundance & !yearlyMean & !heatDays) |> 
+    filter(year > 1980)
+
+newlm1 <- lm(growth_rate ~ heatwaves_prev + heatDays_prev + temp_prev + abundance_prev, data = newRegression1)
+
+summary(newlm1)
+anova(newlm1)
+
+
