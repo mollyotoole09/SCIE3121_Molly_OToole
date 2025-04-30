@@ -1220,7 +1220,7 @@ simpleRegression <- growthRates |>
     dplyr::select(!yearlyMeanTemp & !yearlyTotalPrecip & !Abundance) |> 
     filter(year > 1980)
 
-simplelm <- lm(growth_rate ~ meanTemp_prev * totalPrecip_prev * abundance_prev, data = simpleRegression)
+simplelm <- lm(growth_rate ~ meanTemp_prev + totalPrecip_prev + abundance_prev, data = simpleRegression)
 summary(simplelm)
 
 predictors <- all.vars(formula(simplelm))[-1]
@@ -1330,6 +1330,212 @@ plots <- map(predictors, ~ {
         geom_smooth(method = "lm") +
         labs(x = .x, y = "log(growth rate)", title = paste("Effect of", .x, "on growth rate"))
 })
+
+#Analyse precipitation data with the new variables
+#Start with 95% threshold, I already have a variable for the number of days exceeding the threshold but I need 
+#to modify it so that it accounts for the new time span
+thrs95exceeded_precip <- res1 |> 
+    mutate(year = if_else(month(t) >= 07, 
+                                as.integer(year(t)),
+                                as.integer(year(t) - 1))) |> 
+    group_by(year) |> 
+    summarise(daysExceeded_precip = sum(precip > thresh)) |> 
+    filter(year >= 1980)
+
+#Now, using heatwaveR to calculate the number of precip events with a 95% threshold and a minimum duration of 1 day + average duration
+thrs95dur1_precip <- ts2clm(data = precipitationData, x = t, y = precip, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 95)
+precipRes1 <- filter(thrs95dur2_precip, t >= "1980-01-01") #filter for study years
+precipOut1 <- detect_event(precipRes1, x = t, y = precip, minDuration = 1)
+precipEvents1 <- precipOut1$event |> 
+    mutate(year = if_else(month(date_start) >= 07, 
+                                     as.integer(year(date_start)), 
+                                     as.integer(year(date_start) - 1))) |> 
+    dplyr::select(event_no, duration, date_start, date_end, year) |> 
+    group_by(year) |>
+    summarise(mean_duration = mean(duration), 
+              precipEvents = n())
+
+#regression
+newRegression3 <- growthRates |> 
+    left_join(precipEvents1, by = "year") |> 
+    left_join(yearlyPrecipSum, by = "year") |>
+    left_join(thrs95exceeded_precip, by = "year") |> 
+    mutate(precip_prev = dplyr::lag(precipEvents)) |> 
+    mutate(totalPrecip_prev = dplyr::lag(yearlyTotalPrecip)) |>
+    mutate(daysExceeded_prev = dplyr::lag(daysExceeded_precip)) |>
+    mutate(avgDuration_prev = dplyr::lag(mean_duration)) |>
+    mutate(abundance_prev = dplyr::lag(Abundance)) |> 
+    dplyr::select(!precipEvents & !Abundance & !yearlyTotalPrecip & !daysExceeded_precip & !mean_duration) |> 
+    filter(year > 1980)
+
+newlm3 <- lm(growth_rate ~ precip_prev + totalPrecip_prev + daysExceeded_prev + avgDuration_prev + abundance_prev, data = newRegression3)
+
+summary(newlm3) 
+
+predictors <- all.vars(formula(newlm3))[-1]
+
+plots <- map(predictors, ~ {
+    ggplot(newRegression3, aes_string(x = .x, y = "growth_rate")) +
+        geom_point() +
+        geom_smooth(method = "lm") +
+        labs(x = .x, y = "log(growth rate)", title = paste("Effect of", .x, "on growth rate"))
+})
+
+#2 day minimum, 99% treshold
+thrs99exceeded_precip <- res4 |> 
+    mutate(year = if_else(month(t) >= 07, 
+                                as.integer(year(t)),
+                                as.integer(year(t) - 1))) |> 
+    group_by(year) |> 
+    summarise(daysExceeded_precip = sum(precip > thresh)) |> 
+    filter(year >= 1980)
+
+#Now, using heatwaveR to calculate the number of precip events with a 99% threshold and a minimum duration of 1 day + average duration
+thrs99dur1_precip <- ts2clm(data = precipitationData, x = t, y = precip, climatologyPeriod = c("1950-01-01", "1979-12-31"), pctile = 99)
+precipRes2 <- filter(thrs99dur2_precip, t >= "1980-01-01") #filter for study years
+precipOut2 <- detect_event(precipRes2, x = t, y = precip, minDuration = 1)
+precipEvents2 <- precipOut2$event |> 
+    mutate(year = if_else(month(date_start) >= 07, 
+                                     as.integer(year(date_start)), 
+                                     as.integer(year(date_start) - 1))) |> 
+    dplyr::select(event_no, duration, date_start, date_end, year) |> 
+    group_by(year) |>
+    summarise(mean_duration_precip = mean(duration), 
+              precipEvents = n())
+
+#regression
+newRegression4 <- growthRates |> 
+    left_join(precipEvents2, by = "year") |> 
+    left_join(yearlyPrecipSum, by = "year") |>
+    left_join(thrs99exceeded_precip, by = "year") |> 
+    mutate(precip_prev = dplyr::lag(precipEvents), 
+           precip_prev = replace_na(precip_prev, 0)) |> 
+    mutate(totalPrecip_prev = dplyr::lag(yearlyTotalPrecip)) |>
+    mutate(daysExceeded_prev = dplyr::lag(daysExceeded_precip)) |>
+    mutate(avgDuration_prev = dplyr::lag(mean_duration_precip), 
+           avgDuration_prev = replace_na(avgDuration_prev, 0)) |>
+    mutate(abundance_prev = dplyr::lag(Abundance)) |> 
+    dplyr::select(!precipEvents & !Abundance & !yearlyTotalPrecip & !daysExceeded_precip & !mean_duration_precip) |> 
+    filter(year > 1980)
+
+newlm4 <- lm(growth_rate ~ precip_prev + totalPrecip_prev + daysExceeded_prev + avgDuration_prev + abundance_prev, data = newRegression4)
+
+summary(newlm4) 
+
+predictors <- all.vars(formula(newlm4))[-1]
+
+plots <- map(predictors, ~ {
+    ggplot(newRegression4, aes_string(x = .x, y = "growth_rate")) +
+        geom_point() +
+        geom_smooth(method = "lm") +
+        labs(x = .x, y = "log(growth rate)", title = paste("Effect of", .x, "on growth rate"))
+})
+
+#Analyse the interaction between rainfall and temperature to look at correlation between variables - need to find 
+#a better way to quantify the variables for extreme events - eg combine number of days exceeding threshold, number of events, 
+#and average duration into a single variable.
+bigRegression <- growthRates |> 
+    left_join(precipEvents2, by = "year") |> 
+    left_join(newHeatwaves2, by = "year") |>
+    left_join(yearlyPrecipSum, by = "year") |>
+    left_join(yearlyTempAvg, by = "year") |>
+    left_join(thrs99exceeded_precip, by = "year") |> 
+    left_join(thrs99exceeded_heatwaves, by = "year") |>
+    mutate(precip_prev = dplyr::lag(precipEvents), 
+           precip_prev = replace_na(precip_prev, 0)) |> 
+    mutate(heatwaves_prev = dplyr::lag(heatwaves),
+           heatwaves_prev = replace_na(heatwaves_prev, 0)) |>
+    mutate(totalPrecip_prev = dplyr::lag(yearlyTotalPrecip)) |>
+    mutate(avgTemp_prev = dplyr::lag(yearlyMeanTemp)) |>
+    mutate(daysExceededPrecip_prev = dplyr::lag(daysExceeded_precip)) |>
+    mutate(daysExceededHeatwaves_prev = dplyr::lag(daysExceeded)) |>
+    mutate(avgDurationPrecip_prev = dplyr::lag(mean_duration_precip), 
+           avgDurationPrecip_prev = replace_na(avgDurationPrecip_prev, 0)) |>
+    mutate(avgDurationHeatwave_prev = dplyr::lag(mean_duration), 
+           avgDurationHeatwave_prev = replace_na(avgDurationHeatwave_prev, 0)) |>
+    mutate(abundance_prev = dplyr::lag(Abundance)) |> 
+    dplyr::select(!precipEvents & !heatwaves & !Abundance & !yearlyTotalPrecip & !yearlyMeanTemp & !daysExceeded_precip & !daysExceeded & !mean_duration_precip & !mean_duration) |> 
+    filter(year > 1980)
+
+biglm <- lm(growth_rate ~ heatwaves_prev + avgTemp_prev + daysExceededHeatwaves_prev + avgDurationHeatwave_prev + 
+                precip_prev + totalPrecip_prev + daysExceededPrecip_prev + avgDurationPrecip_prev + abundance_prev, data = bigRegression)
+
+summary(biglm)
+
+pairs(bigRegression[,c("growth_rate", "heatwaves_prev", "avgTemp_prev", "daysExceededHeatwaves_prev", "avgDurationHeatwave_prev", 
+                   "precip_prev", "totalPrecip_prev", "daysExceededPrecip_prev", "avgDurationPrecip_prev")], 
+      panel = panel.smooth)
+
+install.packages("car")
+library(car)
+vif(biglm)
+
+#There is obviously alot of correlation between total number of days exceeding a given threshold and the number of events 
+#Need to look at just using one variable for extreme events 
+
+#I am making the executive decision to use a 99% threshold for precipitaiton and a 95% threshold for heatwaves and simply 
+#using the number of days that exceed this threshold as the predictor variable for extreme events 
+
+#heatwaves -- 
+heatwaveRegression <- growthRates |> 
+    left_join(yearlyTempAvg, by = "year") |>
+    left_join(thrs95exceeded_heatwaves, by = "year") |>
+    mutate(heatwaves_prev = dplyr::lag(daysExceeded)) |>
+    mutate(avgTemp_prev = dplyr::lag(yearlyMeanTemp)) |>
+    mutate(abundance_prev = dplyr::lag(Abundance)) |>  
+    dplyr::select(!daysExceeded & !yearlyMeanTemp & !Abundance) |>
+    filter(year > 1980)
+
+heatwavelm <- lm(growth_rate ~ heatwaves_prev + avgTemp_prev + abundance_prev, data = heatwaveRegression)
+summary(heatwavelm)
+
+predictors <- all.vars(formula(heatwavelm))[-1]
+
+plots <- map(predictors, ~ {
+    ggplot(heatwaveRegression, aes_string(x = .x, y = "growth_rate")) +
+        geom_point() +
+        geom_smooth(method = "lm") +
+        labs(x = .x, y = "log(growth rate)", title = paste("Effect of", .x, "on growth rate"))
+})
+
+#precipitation -- 
+precipRegression <- growthRates |> 
+    left_join(yearlyPrecipSum, by = "year") |>
+    left_join(thrs99exceeded_precip, by = "year") |>
+    mutate(precip_prev = dplyr::lag(daysExceeded_precip)) |>
+    mutate(totalPrecip_prev = dplyr::lag(yearlyTotalPrecip)) |>
+    mutate(abundance_prev = dplyr::lag(Abundance)) |>  
+    dplyr::select(!daysExceeded_precip & !yearlyTotalPrecip & !Abundance) |>
+    filter(year > 1980)
+
+preciplm <- lm(growth_rate ~ precip_prev + totalPrecip_prev + abundance_prev, data = precipRegression)
+summary(preciplm)
+
+predictors <- all.vars(formula(preciplm))[-1]
+
+plots <- map(predictors, ~ {
+    ggplot(precipRegression, aes_string(x = .x, y = "growth_rate")) +
+        geom_point() +
+        geom_smooth(method = "lm") +
+        labs(x = .x, y = "log(growth rate)", title = paste("Effect of", .x, "on growth rate"))
+})
+
+#combination -- 
+combinedRegression <- growthRates |> 
+    left_join(yearlyTempAvg, by = "year") |>
+    left_join(yearlyPrecipSum, by = "year") |>
+    left_join(thrs95exceeded_heatwaves, by = "year") |>
+    left_join(thrs99exceeded_precip, by = "year") |>
+    mutate(heatwaves_prev = dplyr::lag(daysExceeded)) |>
+    mutate(avgTemp_prev = dplyr::lag(yearlyMeanTemp)) |>
+    mutate(precip_prev = dplyr::lag(daysExceeded_precip)) |>
+    mutate(totalPrecip_prev = dplyr::lag(yearlyTotalPrecip)) |>
+    mutate(abundance_prev = dplyr::lag(Abundance)) |>  
+    dplyr::select(!daysExceeded & !daysExceeded_precip & !yearlyMeanTemp & !yearlyTotalPrecip & !Abundance) |>
+    filter(year > 1980)
+
+combinedlm <- lm(growth_rate ~ heatwaves_prev + avgTemp_prev + precip_prev + totalPrecip_prev + abundance_prev, data = combinedRegression)
+summary(combinedlm)
 
 
 ## 30/04 - New Population analysis ---- 
