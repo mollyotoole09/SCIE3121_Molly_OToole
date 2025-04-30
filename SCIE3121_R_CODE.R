@@ -1527,6 +1527,9 @@ plots <- map(predictors, ~ {
         labs(x = .x, y = "log(growth rate)", title = paste("Effect of", .x, "on growth rate"))
 })
 
+precipPlots <- plot_grid(plots[[1]], plots[[2]], plots[[3]], nrow = 3, labels = c("A", "B", "C"))
+ggsave(filename = "plots/results/precipitation.pdf", plot = precipPlots)
+
 #combination -- 
 combinedRegression <- growthRates |> 
     left_join(yearlyTempAvg, by = "year") |>
