@@ -1,0 +1,22 @@
+
+Call:
+lm(formula = growth_rate ~ precip_prev + totalPrecip_prev + abundance_prev, 
+    data = precipRegression)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.76417 -0.17625  0.02201  0.17143  0.44344 
+
+Coefficients:
+                   Estimate Std. Error t value Pr(>|t|)   
+(Intercept)       0.2748257  0.3460209   0.794   0.4326   
+precip_prev       0.0352197  0.0238076   1.479   0.1483   
+totalPrecip_prev -0.0003008  0.0004408  -0.683   0.4995   
+abundance_prev   -0.0050623  0.0016493  -3.069   0.0042 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.2622 on 34 degrees of freedom
+Multiple R-squared:  0.248,	Adjusted R-squared:  0.1817 
+F-statistic: 3.738 on 3 and 34 DF,  p-value: 0.02007
+

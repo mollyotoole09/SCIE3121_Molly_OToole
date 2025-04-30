@@ -1487,7 +1487,9 @@ heatwaveRegression <- growthRates |>
     filter(year > 1980)
 
 heatwavelm <- lm(growth_rate ~ heatwaves_prev + avgTemp_prev + abundance_prev, data = heatwaveRegression)
-summary(heatwavelm)
+heatwaveModel <- summary(heatwavelm)
+write_csv(heatwaveRegression, "results/heatwaveRegression.csv") 
+capture.output(heatwaveModel, file = "results/heatwavelm.txt")
 
 predictors <- all.vars(formula(heatwavelm))[-1]
 
@@ -1497,6 +1499,9 @@ plots <- map(predictors, ~ {
         geom_smooth(method = "lm") +
         labs(x = .x, y = "log(growth rate)", title = paste("Effect of", .x, "on growth rate"))
 })
+
+heatwavePlots <- plot_grid(plots[[1]], plots[[2]], plots[[3]], nrow = 3, labels = c("A", "B", "C"))
+ggsave(filename = "plots/results/heatwaves.pdf", plot = heatwavePlots)
 
 #precipitation -- 
 precipRegression <- growthRates |> 
@@ -1509,7 +1514,9 @@ precipRegression <- growthRates |>
     filter(year > 1980)
 
 preciplm <- lm(growth_rate ~ precip_prev + totalPrecip_prev + abundance_prev, data = precipRegression)
-summary(preciplm)
+precipModel <- summary(preciplm)
+write_csv(precipRegression, "results/precipRegression.csv")
+capture.output(precipModel, file = "results/preciplm.txt")
 
 predictors <- all.vars(formula(preciplm))[-1]
 
@@ -1535,7 +1542,9 @@ combinedRegression <- growthRates |>
     filter(year > 1980)
 
 combinedlm <- lm(growth_rate ~ heatwaves_prev + avgTemp_prev + precip_prev + totalPrecip_prev + abundance_prev, data = combinedRegression)
-summary(combinedlm)
+combinedModel <- summary(combinedlm)
+write_csv(combinedRegression, "results/combinedRegression.csv")
+capture.output(combinedModel, file = "results/combinedlm.txt")
 
 
 ## 30/04 - New Population analysis ---- 
