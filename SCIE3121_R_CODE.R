@@ -315,6 +315,12 @@ temperatureData <- data.frame(t = combinedDates, temp = combinedTemp) #columns h
 
 rm(ls = "dailyData1", "dailyData2", "dailyData3", "dailyData4")
 rm(ls = "heatwavesDat1", "heatwavesDat2", "heatwavesDat3", "heatwavesDat4")
+
+#for future use, just load temperature data file 
+write.csv(temperatureData, "data/temperatureData.csv") #write the data to a csv file for future use
+
+temperatureData <- read.csv("data/temperatureData.csv") 
+
 #We have now selected the maximum temperature for each day, which we can run through the heatwavesR package 
 #to find the number of heatwave events per year. Before we can do this however, we need to define clear, 
 #baseline daily values to use as a threshold
@@ -398,6 +404,10 @@ rm(ls = "hourlyBaselineData1", "hourlyBaselineData2", "hourlyBaselineData3", "ho
 rm(ls = "dailyBaselineData1", "dailyBaselineData2", "dailyBaselineData3", "dailyBaselineData4")
 rm(ls = "start_baselineYr1", "start_baselineYr2", "start_baselineYr3", "start_baselineYr4")
 rm(ls = "baselineDates1", "baselineDates2", "baselineDates3", "baselineDates4")
+
+write.csv(baselineData, "data/baselineTemperatureData.csv") #write the data to a csv file for future use
+
+baselineData <- read.csv("data/baselineTemperatureData.csv") 
 
 ##This will be used in heatwaveR - this data table is a collection of the maximum daily temperature recorded 
 #at the sampling site over the 30 year baseline period (1950-1980) and over the entire sampling period (1980-2018)
@@ -759,6 +769,10 @@ rm(ls = "hourlyPrecipBaseline1", "hourlyPrecipBaseline2", "hourlyPrecipBaseline3
 rm(ls = "hourlyPrecip1", "hourlyPrecip2", "hourlyPrecip3", "hourlyPrecip4")
 rm(ls = "dailyPrecipBaseline1", "dailyPrecipBaseline2", "dailyPrecipBaseline3")
 rm(ls = "dailyPrecip1", "dailyPrecip2", "dailyPrecip3", "dailyPrecip4")
+
+write.csv(precipitationData, "data/precipitationData.csv") #write the data to a csv file for future use
+
+precipitationData <- read.csv("data/precipitationData.csv")
 
 #To get an understanding of the data, heres an example where I calculated the total precipitation recorded in 2018
 data2018 <- precipitationData |> 
@@ -1553,35 +1567,7 @@ example <- res1a |>
     filter(str_detect(t, "2018"))
 
 
-## 30/04 - New Population analysis ---- 
-#Different species in same location - how do different species respond to the same climates 
-roachData <- filter(fishData, TimeSeriesID == "G11473" & Species == "Rutilus rutilus")
-
-roachDataTable <- roachData |> 
-    dplyr::select(!TimeSeriesID & !Species & !SurveyID) |>
-    group_by(Year) |>
-    rename(year = Year) |> 
-    summarise(Abundance = max(Abundance)) |> 
-    complete(year = full_seq(year, 1), fill = list(Abundance = 0))
-
-plot(roachDataTable$year, roachDataTable$Abundance, type = "b", pch = 19, col = "blue", xlab = "year", ylab = "abundance")
-
-#salmo trutta in a different location - warmer waters? might be more susceptible to the effects 
-#of heatwaves here
-
-franceTrout <- filter(fishData, TimeSeriesID == "G7343" & Species == "Salmo trutta")
-
-troutDataTable <- franceTrout |> 
-    dplyr::select(!TimeSeriesID & !Species & !SurveyID) |>
-    group_by(Year) |>
-    rename(year = Year) |> 
-    summarise(Abundance = max(Abundance)) 
-
-plot(troutDataTable$year, troutDataTable$Abundance, type = "b", pch = 19, col = "blue", xlab = "year", ylab = "abundance")
-
-
-
-## 2/04 - Analysis extension ---- 
+## 2/04 - Final Analysis/Models ---- 
 #Add year as an extra fixed effect term for the three models above 
 install.packages("fixest")
 library(fixest)
@@ -1602,7 +1588,7 @@ heatwaveRegression <- growthRates |>
     dplyr::select(!daysExceeded & !yearlyMeanTemp & !Abundance &!log_value) |>
     filter(year > 1980)
 
-heatwavelm <- feols(growth_rate ~ logval_prev + heatwaves_prev + year, data = heatwaveRegression)
+heatwavelm <- feols(growth_rate ~ logval_prev + avgTemp_prev + heatwaves_prev + year - 1, data = heatwaveRegression)
 heatwaveModel <- summary(heatwavelm)
 write_csv(heatwaveRegression, "results/heatwaveRegression.csv") 
 capture.output(heatwaveModel, file = "results/heatwavelm.txt")
@@ -1622,14 +1608,14 @@ ggsave(filename = "plots/results/heatwaves.pdf", plot = heatwavePlots)
 #precipitation -- 
 precipRegression <- growthRates |> 
     left_join(yearlyPrecipSum, by = "year") |>
-    left_join(thrs99exceeded_precip, by = "year") |>
+    left_join(thrs95exceeded_precip, by = "year") |>
     mutate(precip_prev = dplyr::lag(daysExceeded_precip)) |>
     mutate(totalPrecip_prev = dplyr::lag(yearlyTotalPrecip)) |>
     mutate(logval_prev = dplyr::lag(log_value)) |>  
     dplyr::select(!daysExceeded_precip & !yearlyTotalPrecip & !Abundance &!log_value) |>
     filter(year > 1980)
 
-preciplm <- feols(growth_rate ~ logval_prev + precip_prev + year, data = precipRegression)
+preciplm <- feols(growth_rate ~ logval_prev + totalPrecip_prev + precip_prev + year - 1, data = precipRegression)
 precipModel <- summary(preciplm)
 write_csv(precipRegression, "results/precipRegression.csv")
 capture.output(precipModel, file = "results/preciplm.txt")
@@ -1660,7 +1646,7 @@ combinedRegression <- growthRates |>
     dplyr::select(!daysExceeded & !daysExceeded_precip & !yearlyMeanTemp & !yearlyTotalPrecip & !Abundance & !log_value) |>
     filter(year > 1980)
 
-combinedlm <- feols(growth_rate ~  logval_prev + heatwaves_prev + precip_prev + year, data = combinedRegression)
+combinedlm <- feols(growth_rate ~  logval_prev + avgTemp_prev + totalPrecip_prev + heatwaves_prev + precip_prev + year - 1, data = combinedRegression)
 combinedModel <- summary(combinedlm)
 write_csv(combinedRegression, "results/combinedRegression.csv")
 capture.output(combinedModel, file = "results/combinedlm.txt")

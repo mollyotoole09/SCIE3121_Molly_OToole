@@ -1,12 +1,11 @@
 OLS estimation, Dep. Var.: growth_rate
 Observations: 38
 Standard-errors: IID 
-                  Estimate Std. Error   t value   Pr(>|t|)    
-(Intercept)      16.337634   9.608770  1.700284 0.09848533 .  
-logval_prev      -0.699067   0.166321 -4.203112 0.00018837 ***
-precip_prev       0.003249   0.025055  0.129690 0.89759905    
-totalPrecip_prev  0.000248   0.000458  0.541873 0.59154629    
-year             -0.007781   0.004800 -1.620994 0.11453656    
+                  Estimate Std. Error   t value  Pr(>|t|)    
+logval_prev      -0.540745   0.139353 -3.880402 0.0004556 ***
+totalPrecip_prev  0.000298   0.000600  0.495925 0.6231381    
+precip_prev      -0.002272   0.013434 -0.169143 0.8666863    
+year              0.000282   0.000189  1.493971 0.1444068    
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-RMSE: 0.223968   Adj. R2: 0.312406
+RMSE: 0.237253   Adj. R2: 0.230868

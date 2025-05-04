@@ -27,6 +27,7 @@ long_studies <- latitude_bins |>
 
 ##now, create a table with the abundance data for salmo trutta in each of the given studies
 #include latitude so that it can be used as a fixed effect in the model 
+fishData <- read_csv("data/RivFishTIME_DATA.csv")
 
 salmotruttaData <- fishData |> 
     left_join(RivFishStudies, by = "TimeSeriesID") |>
