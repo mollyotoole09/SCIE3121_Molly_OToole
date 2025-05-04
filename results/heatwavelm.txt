@@ -1,22 +1,12 @@
-
-Call:
-lm(formula = growth_rate ~ heatwaves_prev + avgTemp_prev + abundance_prev, 
-    data = heatwaveRegression)
-
-Residuals:
-     Min       1Q   Median       3Q      Max 
--0.76313 -0.17032  0.04217  0.17884  0.41489 
-
-Coefficients:
-                Estimate Std. Error t value Pr(>|t|)   
-(Intercept)     0.302683   0.723974   0.418  0.67851   
-heatwaves_prev  0.002153   0.004444   0.485  0.63111   
-avgTemp_prev   -0.022773   0.085065  -0.268  0.79054   
-abundance_prev -0.004884   0.001694  -2.884  0.00676 **
+OLS estimation, Dep. Var.: growth_rate
+Observations: 38
+Standard-errors: IID 
+                Estimate Std. Error   t value  Pr(>|t|)    
+(Intercept)    18.319573   9.068682  2.020092 0.0515528 .  
+logval_prev    -0.708873   0.159080 -4.456091 0.0000907 ***
+heatwaves_prev  0.000125   0.004108  0.030378 0.9759486    
+avgTemp_prev    0.033836   0.083145  0.406948 0.6866736    
+year           -0.008820   0.004611 -1.912814 0.0644828 .  
 ---
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
-Residual standard error: 0.2701 on 34 degrees of freedom
-Multiple R-squared:  0.2022,	Adjusted R-squared:  0.1318 
-F-statistic: 2.872 on 3 and 34 DF,  p-value: 0.05059
-
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+RMSE: 0.224745   Adj. R2: 0.307626

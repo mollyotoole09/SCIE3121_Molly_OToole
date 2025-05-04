@@ -1549,6 +1549,9 @@ combinedModel <- summary(combinedlm)
 write_csv(combinedRegression, "results/combinedRegression.csv")
 capture.output(combinedModel, file = "results/combinedlm.txt")
 
+example <- res1a |> 
+    filter(str_detect(t, "2018"))
+
 
 ## 30/04 - New Population analysis ---- 
 #Different species in same location - how do different species respond to the same climates 
@@ -1575,3 +1578,90 @@ troutDataTable <- franceTrout |>
     summarise(Abundance = max(Abundance)) 
 
 plot(troutDataTable$year, troutDataTable$Abundance, type = "b", pch = 19, col = "blue", xlab = "year", ylab = "abundance")
+
+
+
+## 2/04 - Analysis extension ---- 
+#Add year as an extra fixed effect term for the three models above 
+install.packages("fixest")
+library(fixest)
+
+#Redefine growth rate to include log_value term
+growthRates <- salmoDataTable |> 
+    mutate(log_value = log10(Abundance + 1),                    #+1 to minimise error if population = 0
+           growth_rate = log_value - dplyr::lag(log_value))  
+
+#Now redefine regression models from above 
+##heatwaves --
+heatwaveRegression <- growthRates |> 
+    left_join(yearlyTempAvg, by = "year") |>
+    left_join(thrs95exceeded_heatwaves, by = "year") |>
+    mutate(heatwaves_prev = dplyr::lag(daysExceeded)) |>
+    mutate(avgTemp_prev = dplyr::lag(yearlyMeanTemp)) |>
+    mutate(logval_prev = dplyr::lag(log_value)) |>  
+    dplyr::select(!daysExceeded & !yearlyMeanTemp & !Abundance &!log_value) |>
+    filter(year > 1980)
+
+heatwavelm <- feols(growth_rate ~ logval_prev + heatwaves_prev + year, data = heatwaveRegression)
+heatwaveModel <- summary(heatwavelm)
+write_csv(heatwaveRegression, "results/heatwaveRegression.csv") 
+capture.output(heatwaveModel, file = "results/heatwavelm.txt")
+
+predictors <- all.vars(formula(heatwavelm))[-1]
+
+plots <- map(predictors, ~ {
+    ggplot(heatwaveRegression, aes_string(x = .x, y = "growth_rate")) +
+        geom_point() +
+        geom_smooth(method = "lm") +
+        labs(x = .x, y = "log(growth rate)", title = paste("Effect of", .x, "on growth rate"))
+})
+
+heatwavePlots <- plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], nrow = 2, ncol = 2, labels = c("A", "B", "C", "D"))
+ggsave(filename = "plots/results/heatwaves.pdf", plot = heatwavePlots)
+
+#precipitation -- 
+precipRegression <- growthRates |> 
+    left_join(yearlyPrecipSum, by = "year") |>
+    left_join(thrs99exceeded_precip, by = "year") |>
+    mutate(precip_prev = dplyr::lag(daysExceeded_precip)) |>
+    mutate(totalPrecip_prev = dplyr::lag(yearlyTotalPrecip)) |>
+    mutate(logval_prev = dplyr::lag(log_value)) |>  
+    dplyr::select(!daysExceeded_precip & !yearlyTotalPrecip & !Abundance &!log_value) |>
+    filter(year > 1980)
+
+preciplm <- feols(growth_rate ~ logval_prev + precip_prev + year, data = precipRegression)
+precipModel <- summary(preciplm)
+write_csv(precipRegression, "results/precipRegression.csv")
+capture.output(precipModel, file = "results/preciplm.txt")
+
+predictors <- all.vars(formula(preciplm))[-1]
+
+plots <- map(predictors, ~ {
+    ggplot(precipRegression, aes_string(x = .x, y = "growth_rate")) +
+        geom_point() +
+        geom_smooth(method = "lm") +
+        labs(x = .x, y = "log(growth rate)", title = paste("Effect of", .x, "on growth rate"))
+})
+
+precipPlots <- plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], nrow = 2, ncol = 2, labels = c("A", "B", "C", "D"))
+ggsave(filename = "plots/results/precipitation.pdf", plot = precipPlots)
+
+#combination -- 
+combinedRegression <- growthRates |> 
+    left_join(yearlyTempAvg, by = "year") |>
+    left_join(yearlyPrecipSum, by = "year") |>
+    left_join(thrs95exceeded_heatwaves, by = "year") |>
+    left_join(thrs99exceeded_precip, by = "year") |>
+    mutate(heatwaves_prev = dplyr::lag(daysExceeded)) |>
+    mutate(avgTemp_prev = dplyr::lag(yearlyMeanTemp)) |>
+    mutate(precip_prev = dplyr::lag(daysExceeded_precip)) |>
+    mutate(totalPrecip_prev = dplyr::lag(yearlyTotalPrecip)) |>
+    mutate(logval_prev = dplyr::lag(log_value)) |>  
+    dplyr::select(!daysExceeded & !daysExceeded_precip & !yearlyMeanTemp & !yearlyTotalPrecip & !Abundance & !log_value) |>
+    filter(year > 1980)
+
+combinedlm <- feols(growth_rate ~  logval_prev + heatwaves_prev + precip_prev + year, data = combinedRegression)
+combinedModel <- summary(combinedlm)
+write_csv(combinedRegression, "results/combinedRegression.csv")
+capture.output(combinedModel, file = "results/combinedlm.txt")
+
