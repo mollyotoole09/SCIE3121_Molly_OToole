@@ -1,0 +1,16 @@
+OLS estimation, Dep. Var.: growth_rate
+Observations: 277
+Fixed-effects: TimeSeriesID: 10,  Year: 38
+Varying slopes: Year (TimeSeriesID): 10
+Standard-errors: Clustered (TimeSeriesID) 
+                Estimate Std. Error    t value   Pr(>|t|)    
+logval_prev    -0.738338   0.042238 -17.480532 2.9669e-08 ***
+temp_prev       0.083915   0.033949   2.471802 3.5465e-02 *  
+precip_prev    -0.024178   0.210596  -0.114809 9.1112e-01    
+extTemp_prev    0.012984   0.008738   1.485938 1.7146e-01    
+extPrecip_prev  0.003892   0.009384   0.414769 6.8802e-01    
+extTemp_abslat -0.000195   0.000129  -1.513587 1.6443e-01    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+RMSE: 0.207753     Adj. R2: 0.312099
+                 Within R2: 0.384693
