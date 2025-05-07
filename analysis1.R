@@ -1,10 +1,12 @@
 library(ggplot2)
 library(cowplot)
+library(tidyverse)
+library(fixest)
 
 #regression 1: heatwaves 
 heatwaveRegression <- read_csv("results/heatwaveRegression.csv")
 heatwavelm <- feols(growth_rate ~ logval_prev + avgTemp_prev + heatwaves_prev + year, data = heatwaveRegression)
-heatwaveModel <- summary(heatwavelm)
+summary(heatwavelm)
 
 predictors <- all.vars(formula(heatwavelm))[-1]
 
@@ -21,7 +23,7 @@ heatwavePlots
 #regression 2: precipitation
 precipRegression <- read_csv("results/precipRegression.csv")
 preciplm <- feols(growth_rate ~ logval_prev + totalPrecip_prev + precip_prev + year, data = precipRegression)
-precipModel <- summary(preciplm)
+summary(preciplm)
 
 predictors <- all.vars(formula(preciplm))[-1]
 

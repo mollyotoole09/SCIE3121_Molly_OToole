@@ -1,6 +1,7 @@
 library(ggplot2)
-library(fixest)
 library(cowplot)
+library(tidyverse)
+library(fixest)
 
 #panel 1 - 95% threshold for heatwaves and precipitation
 pdat <- read_csv("data/new_climate_data/pdat.csv")
