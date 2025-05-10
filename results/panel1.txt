@@ -3,10 +3,10 @@ Observations: 277
 Fixed-effects: TimeSeriesID: 10
 Standard-errors: Clustered (TimeSeriesID) 
              Estimate Std. Error   t value   Pr(>|t|)    
-logval_prev -0.618859   0.090926 -6.806151 7.8508e-05 ***
-temp_prev   -0.022369   0.018235 -1.226698 2.5106e-01    
-precip_prev  0.060214   0.137970  0.436430 6.7281e-01    
+logval_prev -0.619855   0.091079 -6.805694 7.8548e-05 ***
+temp_prev   -0.054121   0.045459 -1.190538 2.6429e-01    
+precip_prev  0.000101   0.000301  0.335055 7.4526e-01    
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-RMSE: 0.235596     Adj. R2: 0.282905
-                 Within R2: 0.310989
+RMSE: 0.542294     Adj. R2: 0.283396
+                 Within R2: 0.311461

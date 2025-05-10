@@ -1588,9 +1588,9 @@ heatwaveRegression <- growthRates |>
     dplyr::select(!daysExceeded & !yearlyMeanTemp & !Abundance &!log_value) |>
     filter(year > 1980)
 
-heatwavelm <- feols(growth_rate ~ logval_prev + avgTemp_prev + heatwaves_prev + year - 1, data = heatwaveRegression)
+heatwavelm <- lm(growth_rate ~ logval_prev + avgTemp_prev + heatwaves_prev + year, data = heatwaveRegression)
 heatwaveModel <- summary(heatwavelm)
-write_csv(heatwaveRegression, "results/heatwaveRegression.csv") 
+write_csv(heatwaveRegression, "data/heatwaveRegression.csv") 
 capture.output(heatwaveModel, file = "results/heatwavelm.txt")
 
 predictors <- all.vars(formula(heatwavelm))[-1]
@@ -1615,9 +1615,9 @@ precipRegression <- growthRates |>
     dplyr::select(!daysExceeded_precip & !yearlyTotalPrecip & !Abundance &!log_value) |>
     filter(year > 1980)
 
-preciplm <- feols(growth_rate ~ logval_prev + totalPrecip_prev + precip_prev + year - 1, data = precipRegression)
+preciplm <- lm(growth_rate ~ logval_prev + totalPrecip_prev + precip_prev + year, data = precipRegression)
 precipModel <- summary(preciplm)
-write_csv(precipRegression, "results/precipRegression.csv")
+write_csv(precipRegression, "data/precipRegression.csv")
 capture.output(precipModel, file = "results/preciplm.txt")
 
 predictors <- all.vars(formula(preciplm))[-1]
@@ -1646,9 +1646,9 @@ combinedRegression <- growthRates |>
     dplyr::select(!daysExceeded & !daysExceeded_precip & !yearlyMeanTemp & !yearlyTotalPrecip & !Abundance & !log_value) |>
     filter(year > 1980)
 
-combinedlm <- feols(growth_rate ~  logval_prev + avgTemp_prev + totalPrecip_prev + heatwaves_prev + precip_prev + year - 1, data = combinedRegression)
+combinedlm <- lm(growth_rate ~  logval_prev + avgTemp_prev + totalPrecip_prev + heatwaves_prev + precip_prev + year, data = combinedRegression)
 combinedModel <- summary(combinedlm)
-write_csv(combinedRegression, "results/combinedRegression.csv")
+write_csv(combinedRegression, "data/combinedRegression.csv")
 capture.output(combinedModel, file = "results/combinedlm.txt")
 
 
@@ -2608,10 +2608,6 @@ europeData <- combinedData |>
 write.csv(europeData, file = "data/new_climate_data/europeData.csv", row.names = FALSE)
 
 europeData <- read_csv("data/new_climate_data/europeData.csv")
-europeData <- europeData |> 
-  mutate(Temp = Temp - 273.15, 
-         AvgTemp = AvgTemp - 273.15, #convert to celsius
-         Precip = Precip * 1000) #convert to mm
 
 view(europeData)
 
@@ -2663,14 +2659,9 @@ for (i in 1:10) {
   thrs95_precip <- bind_rows(thrs95_precip, output)
 }
 
-#find yearly avergae temperature 
-avg_europeData <- europeData |> 
-  select(SiteID, t, AvgTemp) 
-
 #join tables together
 thresholds <- thrs95_temp |> 
-  left_join(thrs95_precip, by = c("SiteID", "Latitude", "Longitude", "t")) |> 
-  left_join(avg_europeData, by = c("SiteID", "t")) 
+  left_join(thrs95_precip, by = c("SiteID", "Latitude", "Longitude", "t")) 
 
 #now, count the number of days per year per site that exceed the temperature and precipitation thresholds 
 thrs_exceeded <- thresholds |> 
@@ -2679,7 +2670,7 @@ thrs_exceeded <- thresholds |>
   group_by(SiteID, Year) |>
   summarise(temp_exceeded = sum(Temp > temp_thresh, na.rm = TRUE),
             precip_exceeded = sum(Precip > precip_thresh, na.rm = TRUE),
-            avg_temp = mean(AvgTemp, na.rm = TRUE),
+            avg_temp = mean(Temp, na.rm = TRUE),
             total_precip = sum(Precip, na.rm = TRUE),
             .groups = "drop") |> 
   mutate(SiteID = case_when(
@@ -2720,7 +2711,7 @@ salmotruttaData <- salmotruttaData |>
 growthRates <- salmotruttaData |> 
   group_by(TimeSeriesID) |>
   arrange(Year) |>
-  mutate(log_value = log10(Abundance + 1), 
+  mutate(log_value = log(Abundance + 1), 
           growth_rate = log_value - lag(log_value)) |> 
   select(TimeSeriesID, Year, Latitude, Longitude, Country, log_value, growth_rate) 
 
@@ -2737,9 +2728,8 @@ for (i in seq_along(longest_ids)) {
            temp_prev = lag(avg_temp),
            precip_prev = lag(total_precip),
            extTemp_prev = lag(temp_exceeded), 
-           extPrecip_prev = lag(precip_exceeded), 
-           extTemp_abslat = lag(temp_exceeded)*Latitude) |> 
-    select(TimeSeriesID, Year, Latitude, Longitude, Country, growth_rate, logval_prev, temp_prev, precip_prev, extTemp_prev, extPrecip_prev, extTemp_abslat) |> 
+           extPrecip_prev = lag(precip_exceeded))|> 
+    select(TimeSeriesID, Year, Latitude, Longitude, Country, growth_rate, logval_prev, temp_prev, precip_prev, extTemp_prev, extPrecip_prev) |> 
     filter(!is.na(growth_rate))
 
 pdat <- bind_rows(pdat, output)
@@ -2750,7 +2740,7 @@ pdat <- bind_rows(pdat, output)
 library(fixest)
 library(ggplot2)
 
-panel1 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev | TimeSeriesID + Year, data = pdat, panel.id=~TimeSeriesID+Year)
+panel1 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev | TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
 summary(panel1)
 
 predicts <- all.vars(formula(panel1))[-1]
@@ -2763,7 +2753,7 @@ plots <- map(predicts, ~ {
         theme_minimal()
 })
 
-panel2 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTemp_prev + extPrecip_prev | TimeSeriesID + Year, data = pdat, panel.id=~TimeSeriesID+Year)
+panel2 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTemp_prev + extPrecip_prev | TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
 summary(panel2)
 
 predicts <- all.vars(formula(panel2))[-1]
@@ -2776,7 +2766,7 @@ plots <- map(predicts, ~ {
         theme_minimal()
 })
 
-panel3 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTemp_prev + extPrecip_prev + extTemp_abslat | TimeSeriesID + Year, data = pdat, panel.id=~TimeSeriesID+Year)
+panel3 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTemp_prev + extPrecip_prev + extTemp_prev:Latitude | TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
 summary(panel3)
 
 predicts <- all.vars(formula(panel3))[-1]
@@ -2788,6 +2778,11 @@ plots <- map(predicts, ~ {
         labs(x = .x, y = "log(growth rate)", title = paste("Effect of", .x, "on growth rate")) +
         theme_minimal()
 })
+
+panel4 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTemp_prev + extPrecip_prev + extTemp_prev:Latitude + extTemp_prev:extPrecip_prev | TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
+summary(panel4)
+
+AIC(panel1, panel2, panel3, panel4)
 
 ##check 99% threshold
 #99% threshold for temperature
@@ -2818,8 +2813,7 @@ for (i in 1:10) {
 
 #join tables together
 thresholds99 <- thrs99_temp |> 
-  left_join(thrs99_precip, by = c("SiteID", "Latitude", "Longitude", "t")) |> 
-  left_join(avg_europeData, by = c("SiteID", "t")) 
+  left_join(thrs99_precip, by = c("SiteID", "Latitude", "Longitude", "t")) 
 
 #count number of days thresholds were exceeded
 thrs99_exceeded <- thresholds99 |> 
@@ -2828,7 +2822,7 @@ thrs99_exceeded <- thresholds99 |>
   group_by(SiteID, Year) |>
   summarise(temp_exceeded = sum(Temp > temp_thresh, na.rm = TRUE),
             precip_exceeded = sum(Precip > precip_thresh, na.rm = TRUE),
-            avg_temp = mean(AvgTemp, na.rm = TRUE),
+            avg_temp = mean(Temp, na.rm = TRUE),
             total_precip = sum(Precip, na.rm = TRUE),
             .groups = "drop") |> 
   mutate(SiteID = case_when(
@@ -2860,9 +2854,8 @@ for (i in seq_along(longest_ids)) {
            temp_prev = lag(avg_temp),
            precip_prev = lag(total_precip),
            extTemp_prev = lag(temp_exceeded), 
-           extPrecip_prev = lag(precip_exceeded), 
-           extTemp_abslat = lag(temp_exceeded)*Latitude) |> 
-    select(TimeSeriesID, Year, Latitude, Longitude, Country, growth_rate, logval_prev, temp_prev, precip_prev, extTemp_prev, extPrecip_prev, extTemp_abslat) |> 
+           extPrecip_prev = lag(precip_exceeded)) |> 
+    select(TimeSeriesID, Year, Latitude, Longitude, Country, growth_rate, logval_prev, temp_prev, precip_prev, extTemp_prev, extPrecip_prev) |> 
     filter(!is.na(growth_rate))
 
 pdat2 <- bind_rows(pdat2, output)
@@ -2870,7 +2863,7 @@ pdat2 <- bind_rows(pdat2, output)
 }
 
 #regression models 
-panel1_99 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev | TimeSeriesID + Year, data = pdat2, panel.id=~TimeSeriesID+Year)
+panel1_99 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev | TimeSeriesID, data = pdat2, panel.id=~TimeSeriesID+Year)
 summary(panel1_99)
 
 predicts <- all.vars(formula(panel1_99))[-1]
@@ -2883,7 +2876,7 @@ plots <- map(predicts, ~ {
         theme_minimal()
 })
 
-panel2_99 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTemp_prev + extPrecip_prev | TimeSeriesID + Year, data = pdat2, panel.id=~TimeSeriesID+Year)
+panel2_99 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTemp_prev + extPrecip_prev | TimeSeriesID, data = pdat2, panel.id=~TimeSeriesID+Year)
 summary(panel2_99)
 
 predicts <- all.vars(formula(panel2_99))[-1]
@@ -2896,7 +2889,7 @@ plots <- map(predicts, ~ {
         theme_minimal()
 })
 
-panel3_99 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTemp_prev + extPrecip_prev + extTemp_abslat | TimeSeriesID + Year, data = pdat2, panel.id=~TimeSeriesID+Year)
+panel3_99 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTemp_prev + extPrecip_prev + extTemp_prev:Latitude | TimeSeriesID, data = pdat2, panel.id=~TimeSeriesID+Year)
 summary(panel3_99)
 
 predicts <- all.vars(formula(panel3_99))[-1]
@@ -2909,14 +2902,24 @@ plots <- map(predicts, ~ {
         theme_minimal()
 })
 
+panel4_99 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTemp_prev + extPrecip_prev + extTemp_prev:Latitude + extTemp_prev:extPrecip_prev | TimeSeriesID, data = pdat2, panel.id=~TimeSeriesID+Year)
+summary(panel4_99)
+
+AIC(panel1_99, panel2_99, panel3_99, panel4_99)
+
+#in the case of the 99% threshold, panel1_99 is the best which means there is not a big effect of 
+#extreme events above the 99% threshold on these 10 populations 
+
 write.csv(pdat, file = "data/new_climate_data/pdat.csv", row.names = FALSE)
 write.csv(pdat2, file = "data/new_climate_data/pdat2.csv", row.names = FALSE)
 capture.output(panel1, file = "results/panel1.txt")
 capture.output(panel2, file = "results/panel2.txt")
 capture.output(panel3, file = "results/panel3.txt")
+capture.output(panel4, file = "results/panel4.txt")
 capture.output(panel1_99, file = "results/panel1_99.txt")
 capture.output(panel2_99, file = "results/panel2_99.txt")
 capture.output(panel3_99, file = "results/panel3_99.txt")
+capture.output(panel4_99, file = "results/panel4_99.txt")
 
 
 ##7/05 - Finalising analysis ---- 
@@ -2969,7 +2972,7 @@ avgYear_europeData <- europeData |>
   group_by(SiteID) |> 
   separate(t, c("Year", "Month", "Day"), sep = "-") |>
   group_by(SiteID, Year) |>
-  summarise(AvgTemp = mean(AvgTemp, na.rm = TRUE), 
+  summarise(AvgTemp = mean(Temp, na.rm = TRUE), 
             TotalPrecip = sum(Precip, na.rm = TRUE), .groups = "drop")
 
 avgYear_europeData$Year <- as.numeric(avgYear_europeData$Year)
@@ -3007,10 +3010,8 @@ for (i in seq_along(longest_ids)) {
            temp_count_prev = lag(heatwave_count), 
            precip_count_prev = lag(precip_count),
            extTempInt_prev = lag(heatwave_count * heatwave_intensity_mean),
-           extPrecipInt_prev = lag(precip_count * precip_intensity_mean), 
-           extTemp_abslat = lag(heatwave_count * heatwave_intensity_mean)*Latitude, 
-           extPrecip_abslat = lag(precip_count * precip_intensity_mean)*Latitude) |> 
-    select(TimeSeriesID, Year, Latitude, Longitude, Country, growth_rate, logval_prev, temp_prev, precip_prev, temp_count_prev, precip_count_prev, extTempInt_prev, extPrecipInt_prev, extTemp_abslat, extPrecip_abslat) |> 
+           extPrecipInt_prev = lag(precip_count * precip_intensity_mean)) |> 
+    select(TimeSeriesID, Year, Latitude, Longitude, Country, growth_rate, logval_prev, temp_prev, precip_prev, temp_count_prev, precip_count_prev, extTempInt_prev, extPrecipInt_prev) |> 
     filter(!is.na(growth_rate))
 
 pdat3 <- bind_rows(pdat3, output)
@@ -3018,10 +3019,10 @@ pdat3 <- bind_rows(pdat3, output)
 }
 
 #regression models 
-panel1_int <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev | TimeSeriesID + Year, data = pdat3, panel.id=~TimeSeriesID+Year)
+panel1_int <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev | TimeSeriesID, data = pdat3, panel.id=~TimeSeriesID+Year)
 summary(panel1_99)
 
-panel2_int <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + temp_count_prev + precip_count_prev | TimeSeriesID + Year, data = pdat3, panel.id=~TimeSeriesID+Year)
+panel2_int <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + temp_count_prev + precip_count_prev | TimeSeriesID, data = pdat3, panel.id=~TimeSeriesID+Year)
 summary(panel2_int)
 
 predicts <- all.vars(formula(panel2_int))[-1]
@@ -3034,7 +3035,7 @@ plots <- map(predicts, ~ {
         theme_minimal()
 })
 
-panel3_int <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTempInt_prev + extPrecipInt_prev | TimeSeriesID + Year, data = pdat3, panel.id=~TimeSeriesID+Year)
+panel3_int <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTempInt_prev + extPrecipInt_prev | TimeSeriesID, data = pdat3, panel.id=~TimeSeriesID+Year)
 summary(panel3_int)
 
 predicts <- all.vars(formula(panel3_int))[-1]
@@ -3047,7 +3048,7 @@ plots <- map(predicts, ~ {
         theme_minimal()
 })
 
-panel4_int <- feols(growth_rate ~ logval_prev + extTempInt_prev + extPrecipInt_prev + extTemp_abslat + extPrecip_abslat | TimeSeriesID + Year, data = pdat3, panel.id=~TimeSeriesID+Year)
+panel4_int <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTempInt_prev + extPrecipInt_prev + extTempInt_prev:extPrecipInt_prev | TimeSeriesID, data = pdat3, panel.id=~TimeSeriesID+Year)
 summary(panel4_int)
 
 predicts <- all.vars(formula(panel4_int))[-1]
@@ -3059,3 +3060,6 @@ plots <- map(predicts, ~ {
         labs(x = .x, y = "log(growth rate)", title = paste("Effect of", .x, "on growth rate")) +
         theme_minimal()
 })
+
+AIC(panel1_int, panel2_int)
+AIC(panel3_int, panel4_int)

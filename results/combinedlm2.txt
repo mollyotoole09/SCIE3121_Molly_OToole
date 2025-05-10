@@ -1,0 +1,25 @@
+
+Call:
+lm(formula = growth_rate ~ logval_prev + avgTemp_prev + totalPrecip_prev + 
+    heatwaves_prev + precip_prev + year, data = combinedRegression)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.57440 -0.16575  0.04694  0.14788  0.38714 
+
+Coefficients:
+                   Estimate Std. Error t value Pr(>|t|)    
+(Intercept)      18.9793968  9.2661813   2.048 0.049086 *  
+logval_prev      -0.7223960  0.1626931  -4.440 0.000106 ***
+avgTemp_prev      0.0210285  0.0863581   0.244 0.809220    
+totalPrecip_prev  0.0004687  0.0006000   0.781 0.440601    
+heatwaves_prev    0.0007166  0.0042302   0.169 0.866588    
+precip_prev      -0.0055621  0.0136289  -0.408 0.685996    
+year             -0.0092376  0.0047224  -1.956 0.059512 .  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.2454 on 31 degrees of freedom
+Multiple R-squared:  0.3994,	Adjusted R-squared:  0.2831 
+F-statistic: 3.435 on 6 and 31 DF,  p-value: 0.01021
+
