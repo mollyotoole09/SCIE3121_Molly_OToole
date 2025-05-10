@@ -49,18 +49,35 @@ summary(panel3)
 panel4 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTemp_prev + extPrecip_prev + extTemp_prev:Latitude + extTemp_prev:extPrecip_prev | TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
 summary(panel4)
 
+plot_labels <- c(
+  logval_prev = "log(Abundance)",
+  temp_prev = "Average annual temperature (ºC)",
+  precip_prev = "Total annual precipitation (mm)",
+  extTemp_prev = "Number of days exceeding 95% temperature threshold",
+  extPrecip_prev = "Number of days exceeding 95% precipitation threshold"
+)
+
 predicts4 <- all.vars(formula(panel4))[-1]
 
 plots4 <- map(predicts4, ~ {
+    label <- plot_labels[.x]
     ggplot(pdat, aes_string(x = .x, y = "growth_rate")) +
-        geom_point(alpha = 0.6) +
-        geom_smooth(method = "lm", se = TRUE, color = "blue") +
-        labs(x = .x, y = "log(growth rate)", title = paste("Effect of", .x, "on growth rate")) +
-        theme_minimal()
+        geom_point() +
+        geom_smooth(method = "lm") +
+        labs(x = label, y = "log(growth rate)") 
 })
 
-panel4Plots <- plot_grid(plots1[[2]], plots1[[3]], plots2[[4]], plots2[[5]], nrow = 2, ncol = 2, labels = c("A", "B", "C", "D"))
+panel4Plots <- plot_grid(plots4[[2]], plots4[[3]], plots4[[4]], plots4[[5]], nrow = 2, ncol = 2, labels = c("A", "B", "C", "D"))
 panel4Plots
+
+ggsave(filename = "results/Plots_analysis2.pdf", plot = panel4Plots)
+
+plot_density2 <- ggplot(pdat, aes(x = logval_prev, y = growth_rate)) + 
+    geom_point() + 
+    geom_smooth(method = "lm") + 
+    labs(x = "log(Abundance in year t - 1)", y = "log(Growth Rate in year t)", title = "Density Dependence - Analysis 2")
+
+ggsave(filename = "results/Plot_DensityDependence2.pdf", plot = plot_density2)
 
 AIC(panel1, panel2, panel3, panel4)
 

@@ -51,17 +51,35 @@ summary(combinedlm2)
 combinedlm3 <- lm(growth_rate ~ logval_prev + avgTemp_prev + totalPrecip_prev + heatwaves_prev + precip_prev + heatwaves_prev:precip_prev + year, data = combinedRegression)
 summary(combinedlm3)
 
+plot_labels <- c(
+  logval_prev = "log(Abundance)",
+  avgTemp_prev = "Average annual temperature (ºC)",
+  totalPrecip_prev = "Total annual precipitation (mm)",
+  heatwaves_prev = "Number of days exceeding 95% temperature threshold",
+  precip_prev = "Number of days exceeding 95% precipitation threshold"
+)
+
 predictors <- all.vars(formula(combinedlm3))[-1]
 
 plots <- map(predictors, ~ {
+    label <- plot_labels[.x]
     ggplot(combinedRegression, aes_string(x = .x, y = "growth_rate")) +
         geom_point() +
         geom_smooth(method = "lm") +
-        labs(x = .x, y = "log(growth rate)", title = paste("Effect of", .x, "on growth rate"))
+        labs(x = label, y = "log(growth rate)")
 })
 
-combinedRegressionPlots <- plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]], nrow = 3, ncol = 2, labels = c("A", "B", "C", "D", "E", "F"))
+combinedRegressionPlots <- plot_grid(plots[[2]], plots[[3]], plots[[4]], plots[[5]], nrow = 2, ncol = 2, labels = c("A", "B", "C", "D"))
 combinedRegressionPlots
+
+ggsave(filename = "results/Plots_analysis1.pdf", plot = combinedRegressionPlots)
+
+plot_density1 <- ggplot(combinedRegression, aes(x = logval_prev, y = growth_rate)) + 
+    geom_point() + 
+    geom_smooth(method = "lm") + 
+    labs(x = "log(Abundance in year t - 1)", y = "log(Growth Rate in year t)", title = "Density Dependence - Analysis 1")
+
+ggsave(filename = "results/Plot_DensityDependence1.pdf", plot = plot_density1)
 
 AIC(combinedlm1, combinedlm2, combinedlm3)
 
