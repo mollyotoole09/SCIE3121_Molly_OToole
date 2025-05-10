@@ -130,6 +130,4 @@ capture.output(panel4_99, file = "results/panel4_99.txt")
 #precip_prev: total precipitation recorded in the previous year
 #extTemp_prev: number of days exceeding 95%/99% heatwave threshold in the previous year
 #extPrecip_prev: number of days exceeding 95/99% precipitation threshold in the previous year
-#extTemp_abslat: number of days exceeding 95%/99% heatwave threshold in the previous year * absolute latitude
-#extPrecip_abslat: number of days exceeding 95%/99% precipitation threshold in the previous year * absolute latitude
 #Year: year of observation
