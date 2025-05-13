@@ -6,25 +6,20 @@ library(fixest)
 #panel 1 - 95% threshold for heatwaves and precipitation
 pdat <- read_csv("data/new_climate_data/pdat.csv")
 
-#regression 1: avg yearly temperature and total yearly precipitation
-panel1 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev | TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
+#regression1: density 
+panel1 <- feols(growth_rate ~ logval_prev | TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
 summary(panel1)
 
-predicts1 <- all.vars(formula(panel1))[-1]
+plot_density2 <- ggplot(pdat, aes(x = logval_prev, y = growth_rate)) + 
+    geom_point() + 
+    geom_smooth(method = "lm") + 
+    labs(x = "log(Abundance in year t - 1)", y = "log(Growth Rate in year t)", title = "Density Dependence - Analysis 2")
 
-plots1 <- map(predicts1, ~ {
-    ggplot(pdat, aes_string(x = .x, y = "growth_rate")) +
-        geom_point(alpha = 0.6) +
-        geom_smooth(method = "lm", se = TRUE, color = "blue") +
-        labs(x = .x, y = "log(growth rate)", title = paste("Effect of", .x, "on growth rate")) +
-        theme_minimal()
-})
+plot_density2
+ggsave(filename = "results/Plot_DensityDependence2.pdf", plot = plot_density2)
 
-panel1Plots <- plot_grid(plots1[[1]], plots1[[2]], plots1[[3]], nrow = 3, ncol = 1, labels = c("A", "B", "C"))
-panel1Plots
-
-#regression 2: extreme temperature and precipitation events
-panel2 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTemp_prev + extPrecip_prev | TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
+#regression 2: add avg yearly temperature and total yearly precipitation
+panel2 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev | TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
 summary(panel2)
 
 predicts2 <- all.vars(formula(panel2))[-1]
@@ -37,16 +32,28 @@ plots2 <- map(predicts2, ~ {
         theme_minimal()
 })
 
-panel2Plots <- plot_grid(plots2[[4]], plots2[[5]], nrow = 2, ncol = 1, labels = c("A", "B"))
+panel2Plots <- plot_grid(plots2[[2]], plots2[[3]], nrow = 2, ncol = 1, labels = c("A", "B", "C"))
 panel2Plots
 
-#regression 3: avg yearly temperature, total yearly precipitation, number of days exceeding temperature and precipitation thresholds 
-panel3 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTemp_prev + extPrecip_prev + extTemp_prev:Latitude | TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
+#regression 3: add extreme temperature and precipitation events
+panel3 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTemp_prev + extPrecip_prev | TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
 summary(panel3)
 
-#regression 4: avg yearly temperature, total yearly precipitation, number of days exceeding temperature and precipitation thresholds
-# + extreme temperature * latitude and extreme precipitation * latitude
-panel4 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTemp_prev + extPrecip_prev + extTemp_prev:Latitude + extTemp_prev:extPrecip_prev | TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
+predicts3 <- all.vars(formula(panel3))[-1]
+
+plots3 <- map(predicts3, ~ {
+    ggplot(pdat, aes_string(x = .x, y = "growth_rate")) +
+        geom_point(alpha = 0.6) +
+        geom_smooth(method = "lm", se = TRUE, color = "blue") +
+        labs(x = .x, y = "log(growth rate)", title = paste("Effect of", .x, "on growth rate")) +
+        theme_minimal()
+})
+
+panel3Plots <- plot_grid(plots3[[4]], plots3[[5]], nrow = 2, ncol = 1, labels = c("A", "B"))
+panel3Plots
+
+#regression 4: add interaction between extreme temperature and latitude and an interaction between extreme temperature and extreme precipitation
+panel4 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTemp_prev + extPrecip_prev + extTemp_prev:Latitude + extTemp_prev:extPrecip_prev| TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
 summary(panel4)
 
 plot_labels <- c(
@@ -72,19 +79,34 @@ panel4Plots
 
 ggsave(filename = "results/Plots_analysis2.pdf", plot = panel4Plots)
 
-plot_density2 <- ggplot(pdat, aes(x = logval_prev, y = growth_rate)) + 
-    geom_point() + 
-    geom_smooth(method = "lm") + 
-    labs(x = "log(Abundance in year t - 1)", y = "log(Growth Rate in year t)", title = "Density Dependence - Analysis 2")
+#regression 5: filter only for the values that explain a significant amount of variation - logval_prev, temp_prev, extTemp_prev, extTemp_prev:Latitude
+panel5 <- feols(growth_rate ~ logval_prev + extTemp_prev + extTemp_prev:Latitude | TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
+summary(panel5)
 
-ggsave(filename = "results/Plot_DensityDependence2.pdf", plot = plot_density2)
+#visualise interaction between extreme temperature and latitude
+ggplot(pdat) + 
+  geom_point(aes(extTemp_prev, growth_rate, col = Latitude)) +
+  geom_smooth(aes(extTemp_prev, growth_rate), method = "lm") + 
+  scale_color_viridis_c(option = "A") + 
+  labs(color = "Latitude") +
+  theme_minimal()
 
-AIC(panel1, panel2, panel3, panel4)
+#separate populations 
+ggplot(pdat, aes(extTemp_prev, growth_rate)) +
+  geom_point(aes(color = Latitude)) +
+  geom_smooth(method = "lm", se = FALSE, color = "black") +
+  facet_wrap(~ TimeSeriesID) +
+  scale_color_viridis_c() +
+  theme_minimal()
+
+AIC(panel1, panel2, panel3, panel4, panel5)
 
 capture.output(panel1, file = "results/panel1.txt")
 capture.output(panel2, file = "results/panel2.txt")
 capture.output(panel3, file = "results/panel3.txt")
 capture.output(panel4, file = "results/panel4.txt")
+capture.output(panel5, file = "results/panel5.txt")
+
 
 #panel 2 - 99% threshold for heatwaves and precipitation
 pdat2 <- read_csv("data/new_climate_data/pdat2.csv")

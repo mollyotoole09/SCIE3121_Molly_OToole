@@ -2,11 +2,9 @@ OLS estimation, Dep. Var.: growth_rate
 Observations: 277
 Fixed-effects: TimeSeriesID: 10
 Standard-errors: Clustered (TimeSeriesID) 
-             Estimate Std. Error   t value   Pr(>|t|)    
-logval_prev -0.619855   0.091079 -6.805694 7.8548e-05 ***
-temp_prev   -0.054121   0.045459 -1.190538 2.6429e-01    
-precip_prev  0.000101   0.000301  0.335055 7.4526e-01    
+             Estimate Std. Error  t value   Pr(>|t|)    
+logval_prev -0.621391    0.08918 -6.96785 6.5536e-05 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-RMSE: 0.542294     Adj. R2: 0.283396
-                 Within R2: 0.311461
+RMSE: 0.544095     Adj. R2: 0.284054
+                 Within R2: 0.306881

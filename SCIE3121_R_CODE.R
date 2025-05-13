@@ -1563,9 +1563,6 @@ combinedModel <- summary(combinedlm)
 write_csv(combinedRegression, "results/combinedRegression.csv")
 capture.output(combinedModel, file = "results/combinedlm.txt")
 
-example <- res1a |> 
-    filter(str_detect(t, "2018"))
-
 
 ##2/05 - Final Analysis/Models ---- 
 #Add year as an extra fixed effect term for the three models above 

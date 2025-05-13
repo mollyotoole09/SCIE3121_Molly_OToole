@@ -1,23 +1,20 @@
 
 Call:
-lm(formula = growth_rate ~ logval_prev + avgTemp_prev + totalPrecip_prev + 
-    year, data = combinedRegression)
+lm(formula = growth_rate ~ logval_prev + year, data = combinedRegression)
 
 Residuals:
      Min       1Q   Median       3Q      Max 
--0.57355 -0.17006  0.05532  0.15183  0.34423 
+-0.57997 -0.19052  0.03934  0.14066  0.40952 
 
 Coefficients:
-                   Estimate Std. Error t value Pr(>|t|)    
-(Intercept)      18.9214677  8.8064439   2.149   0.0391 *  
-logval_prev      -0.7191227  0.1568773  -4.584 6.25e-05 ***
-avgTemp_prev      0.0294177  0.0411069   0.716   0.4792    
-totalPrecip_prev  0.0002537  0.0002972   0.854   0.3994    
-year             -0.0092041  0.0044243  -2.080   0.0453 *  
+             Estimate Std. Error t value Pr(>|t|)    
+(Intercept) 15.746230   8.218336   1.916   0.0636 .  
+logval_prev -0.691001   0.154046  -4.486  7.5e-05 ***
+year        -0.007371   0.004051  -1.819   0.0774 .  
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
-Residual standard error: 0.2386 on 33 degrees of freedom
-Multiple R-squared:  0.3958,	Adjusted R-squared:  0.3226 
-F-statistic: 5.405 on 4 and 33 DF,  p-value: 0.001846
+Residual standard error: 0.2369 on 35 degrees of freedom
+Multiple R-squared:  0.3679,	Adjusted R-squared:  0.3317 
+F-statistic: 10.18 on 2 and 35 DF,  p-value: 0.0003267
 
