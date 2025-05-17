@@ -1,8 +1,9 @@
 ##27/02 - First attempt at analysing BioTIME dataset ---- 
+#import data
 rainbow_bay <- read.csv("~/SCIE3121_Molly_OToole/data/raw_data_328.csv")
 rainbow_bay
 
-#Could have sorted by GENUS_SPECIES 
+#plot each time series 
 y_vals_ao <- rainbow_bay[1:30, 1] 
 x_vals_ao <- rainbow_bay[1:30, 10]
 plot(x_vals_ao, y_vals_ao, type = 'l', xlab = 'time', ylab = 'abundance')
@@ -59,7 +60,8 @@ rm(list = ls())
 ##4/03 - Second Trial at BioTIME ---- 
 library(data.table)
 library(tidyverse)
-zooplanktonData <- read.csv("data/raw_data_253.csv") #load zooplankton data from BioTIME
+#import data
+zooplanktonData <- read.csv("data/raw_data_253.csv") 
 
 speciesData <- data.table(zooplanktonData$GENUS_SPECIES)  #create a new data table with only genus information
 summarySpeciesData <- table(zooplanktonData$GENUS_SPECIES) #create a summary table that shows how many records of each species are found in the dataset 
@@ -94,6 +96,7 @@ Loc5 <- timeSeriesData[LATITUDE == 46.029267]
 Loc6 <- timeSeriesData[LATITUDE == 46.038317]
 Loc7 <- timeSeriesData[LATITUDE == 46.04125]
 
+#plot time series at different locations
 plot(Loc1$YEAR, Loc1$meanAbundance, type = "l", xlab = "time", ylab = "abundance")
 title(main = "Location 1, (46.00275)")
 plot(Loc2$YEAR, Loc2$meanAbundance, type = "l", xlab = "time", ylab = "abundance")
@@ -113,6 +116,7 @@ rm(list = ls())
 
 
 ##18/03 - RivFishTIME dataset ---- 
+#import data
 fishData <- read_csv("data/RivFishTIME_DATA.csv")
 
 speciesFishData <- table(fishData$Species)
@@ -126,6 +130,7 @@ salmoDataTable <- G11473A_SalmoDat |>
     rename(year = Year) |>
     summarise(Abundance = max(Abundance)) #select the maximum abundance for the year instead of the mean - more accurate in this study
 
+#plot time series
 pdf("plots/Salmo_trutta.pdf", width = 6, height = 5)
 plot(salmoDataTable$year, salmoDataTable$Abundance, type = "l", xlab = "time", ylab = "abundance")
 title(main = "Salmo trutta - G11473")
@@ -142,6 +147,7 @@ salmoDataTable2 <- G10988A_SalmoDat |>
     group_by(Year) |> 
     summarise(Abunance = mean(Abundance))
 
+#plot time series
 pdf("plots/Salmo_trutta_2.pdf", width = 6, height = 5)
 plot(salmoDataTable2$Year, salmoDataTable2$Abunance, type = "l", xlab = "time", ylab = "abundance")
 title(main = "Salmo trutta - G10988")
@@ -156,6 +162,7 @@ salmoDataTable3 <- G10538A_SalmoDat |>
     group_by(Year) |> 
     summarise(Abunance = mean(Abundance))
 
+#plot time series
 pdf("plots/Salmo_salar.pdf", width = 6, height = 5)
 plot(salmoDataTable3$Year, salmoDataTable3$Abunance, type = "l", xlab = "time", ylab = "abundance")
 title(main = "Salmo salar - G10538")
@@ -170,6 +177,7 @@ salmoDataTable4 <- G10120A_SalmoDat |>
     group_by(Year) |> 
     summarise(Abunance = mean(Abundance))
 
+#plot time series
 pdf("plots/Salmo_salar_2.pdf", width = 6, height = 5)
 plot(salmoDataTable4$Year, salmoDataTable4$Abunance, type = "l", xlab = "time", ylab = "abundance")
 title(main = "Salmo salar - G10120")
@@ -876,7 +884,7 @@ thrs99precipPlot <- ggplot(data = thrs99_exceeded, aes(x = year, y = yearlyCount
 ggsave(filename = "plots/thresholds_precip/99.pdf", plot = thrs99precipPlot)
 
 
-##15/04 - Abundance Analysis and Regression ---- 
+##15/04 - Abundance Analysis and Regression 1 ---- 
 #Now that I have all of the temperature and precipitation data, I can go through and compare it 
 #to the abundance data I previously collected for the population of brown trout at the sampling site 
 
@@ -1205,7 +1213,7 @@ summary(lm15)
 anova(lm15)
 
 
-##28/04 - Refining analysis ----
+##28/04 - Refining analysis 1 ----
 #First, define a predictor variable for average annual temperatures during study period with specified yearly period
 yearlyTempAvg <- heatwaveData |> 
     mutate(year = if_else(month(t) >= 07, 
@@ -1564,7 +1572,7 @@ write_csv(combinedRegression, "results/combinedRegression.csv")
 capture.output(combinedModel, file = "results/combinedlm.txt")
 
 
-##2/05 - Final Analysis/Models ---- 
+##2/05 - Final Analysis 1 Models ---- 
 #Add year as an extra fixed effect term for the three models above 
 install.packages("fixest")
 library(fixest)
@@ -1575,7 +1583,7 @@ growthRates <- salmoDataTable |>
            growth_rate = log_value - dplyr::lag(log_value))  
 
 #Now redefine regression models from above 
-##heatwaves --
+##heatwaves model --
 heatwaveRegression <- growthRates |> 
     left_join(yearlyTempAvg, by = "year") |>
     left_join(thrs95exceeded_heatwaves, by = "year") |>
@@ -1602,7 +1610,7 @@ plots <- map(predictors, ~ {
 heatwavePlots <- plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], nrow = 2, ncol = 2, labels = c("A", "B", "C", "D"))
 ggsave(filename = "plots/results/heatwaves.pdf", plot = heatwavePlots)
 
-#precipitation -- 
+#precipitation model -- 
 precipRegression <- growthRates |> 
     left_join(yearlyPrecipSum, by = "year") |>
     left_join(thrs95exceeded_precip, by = "year") |>
@@ -1629,7 +1637,7 @@ plots <- map(predictors, ~ {
 precipPlots <- plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], nrow = 2, ncol = 2, labels = c("A", "B", "C", "D"))
 ggsave(filename = "plots/results/precipitation.pdf", plot = precipPlots)
 
-#combination -- 
+#combination model -- 
 combinedRegression <- growthRates |> 
     left_join(yearlyTempAvg, by = "year") |>
     left_join(yearlyPrecipSum, by = "year") |>
@@ -1648,6 +1656,30 @@ combinedModel <- summary(combinedlm)
 write_csv(combinedRegression, "data/combinedRegression.csv")
 capture.output(combinedModel, file = "results/combinedlm.txt")
 
+#Abundance vs heatwaves 
+salmoHeatwavePlot <- ggplot(data = salmoDataTable) + 
+              geom_line(aes(x = year, y = Abundance, colour = "Abundance (count)"), size = 1) + 
+
+              geom_line(data = thrs95exceeded_heatwaves, 
+                aes(x = year, y = daysExceeded, colour = "Number of days exceededing 95% temperature threshold"), size = 1) +
+
+              scale_color_manual(name = "Legend", 
+                     values = c("Abundance (count)" = "blue", "Number of days exceededing 95% temperature threshold" = "red")) +
+
+              theme(
+                legend.position = c(.95, .95),
+                legend.justification = c("right", "top"),
+                legend.box.just = "right",
+                legend.margin = margin(6, 6, 6, 6), 
+                legend.text = element_text(size = 15)
+               ) + 
+
+               labs(x = "Year", y = "")
+              
+  salmoHeatwavePlot
+
+ggsave(filename = "results/abundancevheatwavesplot.png", plot = salmoHeatwavePlot, height = 10, width = 8)
+
 
 ##2/05 - Extension: 10 populations of salmo trutta at different latitudes ---- 
 ##upload studies with salmo trutta records >5 years 
@@ -1664,7 +1696,7 @@ RivFishStudies <- read_csv("data/RivFishTIME_STUDIES.csv")
 RivFishStudies <- RivFishStudies |> 
     dplyr::select(TimeSeriesID, Latitude, Longitude, Country, Region, Province)
 
-##join 2 tables to attach latitudes to salmo trutta studies and create 15 bins for latitude groups
+##join 2 tables to attach latitudes to salmo trutta studies and create 10 bins for latitude groups
 salmoStudies_latitude <- salmotruttaStudies |> 
     left_join(RivFishStudies, by = "TimeSeriesID") 
 
@@ -1731,15 +1763,15 @@ datetimes1 <- seq(start_time1, by = "hour", length.out = n_timepoints1)
 
 for (i in seq_along(list_coords)) {
 
-  # Convert the i-th coordinate into a single-point SpatVector (as matrix)
+  #convert the i-th coordinate into a single-point SpatVector (as matrix)
   coord_mat <- matrix(list_coords[[i]], nrow = 1)
   coords_sf <- vect(coord_mat, type = "points", crs = crs(data1))
   
-  # Extract temperature and precipitation
+  #extract temperature and precipitation
   temp_vals1 <- extract(temp_data1, coords_sf)[, -1]  # remove ID column
   precip_vals1 <- extract(precip_data1, coords_sf)[, -1]
   
-  # Create data frame for this location
+  #create data frame for this location
   df <- data.frame(
     Longitude = list_coords[[i]][1],
     Latitude = list_coords[[i]][2],
@@ -1748,7 +1780,7 @@ for (i in seq_along(list_coords)) {
     Precipitation = as.numeric(precip_vals1)
   )
   
-  # Save to list
+  #save to list
   results1[[i]] <- df
 }
 
@@ -1758,12 +1790,14 @@ for (i in seq_along(results1)) {
 }
 
 write.csv(results1, file = "data/new_climate_data/europeData1_coords.csv", row.names = FALSE)
+
+#to import the data back into the right format
 df_results1 <- read.csv("data/new_climate_data/europeData1_coords.csv")
 
 results1 <- vector("list", length = 10)
 
 for (i in 0:9) {
-  # Column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
+  #column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
   suffix <- if (i == 0) "" else paste0(".", i)
   
   results1[[i + 1]] <- df_results1 |>
@@ -1804,15 +1838,15 @@ datetimes2 <- seq(start_time2, by = "hour", length.out = n_timepoints2)
 
 for (i in seq_along(list_coords)) {
 
-  # Convert the i-th coordinate into a single-point SpatVector (as matrix)
+  #convert the i-th coordinate into a single-point SpatVector (as matrix)
   coord_mat <- matrix(list_coords[[i]], nrow = 1)
   coords_sf <- vect(coord_mat, type = "points", crs = crs(data2))
   
-  # Extract temperature and precipitation
+  #extract temperature and precipitation
   temp_vals2 <- extract(temp_data2, coords_sf)[, -1]  # remove ID column
   precip_vals2 <- extract(precip_data2, coords_sf)[, -1]
   
-  # Create data frame for this location
+  #create data frame for this location
   df <- data.frame(
     Longitude = list_coords[[i]][1],
     Latitude = list_coords[[i]][2],
@@ -1821,7 +1855,7 @@ for (i in seq_along(list_coords)) {
     Precipitation = as.numeric(precip_vals2)
   )
   
-  # Save to list
+  #save to list
   results2[[i]] <- df
 }
 
@@ -1831,12 +1865,14 @@ for (i in seq_along(results2)) {
 }
 
 write.csv(results2, file = "data/new_climate_data/europeData2_coords.csv", row.names = FALSE)
+
+#to import the data back into the right format
 df_results2 <- read.csv("data/new_climate_data/europeData2_coords.csv")
 
 results2 <- vector("list", length = 10)
 
 for (i in 0:9) {
-  # Column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
+  #column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
   suffix <- if (i == 0) "" else paste0(".", i)
   
   results2[[i + 1]] <- df_results2 |>
@@ -1877,15 +1913,15 @@ datetimes3 <- seq(start_time3, by = "hour", length.out = n_timepoints3)
 
 for (i in seq_along(list_coords)) {
 
-  # Convert the i-th coordinate into a single-point SpatVector (as matrix)
+  #convert the i-th coordinate into a single-point SpatVector (as matrix)
   coord_mat <- matrix(list_coords[[i]], nrow = 1)
   coords_sf <- vect(coord_mat, type = "points", crs = crs(data3))
   
-  # Extract temperature and precipitation
+  #extract temperature and precipitation
   temp_vals3 <- extract(temp_data3, coords_sf)[, -1]  # remove ID column
   precip_vals3 <- extract(precip_data3, coords_sf)[, -1]
   
-  # Create data frame for this location
+  #create data frame for this location
   df <- data.frame(
     Longitude = list_coords[[i]][1],
     Latitude = list_coords[[i]][2],
@@ -1904,12 +1940,14 @@ for (i in seq_along(results3)) {
 }
 
 write.csv(results3, file = "data/new_climate_data/europeData3_coords.csv", row.names = FALSE)
+
+#to import the data back into the right format
 df_results3 <- read.csv("data/new_climate_data/europeData3_coords.csv")
 
 results3 <- vector("list", length = 10)
 
 for (i in 0:9) {
-  # Column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
+  #column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
   suffix <- if (i == 0) "" else paste0(".", i)
   
   results3[[i + 1]] <- df_results3 |>
@@ -1950,15 +1988,15 @@ datetimes4 <- seq(start_time4, by = "hour", length.out = n_timepoints4)
 
 for (i in seq_along(list_coords)) {
 
-  # Convert the i-th coordinate into a single-point SpatVector (as matrix)
+  #convert the i-th coordinate into a single-point SpatVector (as matrix)
   coord_mat <- matrix(list_coords[[i]], nrow = 1)
   coords_sf <- vect(coord_mat, type = "points", crs = crs(data4))
   
-  # Extract temperature and precipitation
+  #extract temperature and precipitation
   temp_vals4 <- extract(temp_data4, coords_sf)[, -1]  # remove ID column
   precip_vals4 <- extract(precip_data4, coords_sf)[, -1]
   
-  # Create data frame for this location
+  #create data frame for this location
   df <- data.frame(
     Longitude = list_coords[[i]][1],
     Latitude = list_coords[[i]][2],
@@ -1967,7 +2005,7 @@ for (i in seq_along(list_coords)) {
     Precipitation = as.numeric(precip_vals4)
   )
   
-  # Save to list
+  #save to list
   results4[[i]] <- df
 }
 
@@ -1977,12 +2015,14 @@ for (i in seq_along(results4)) {
 }
 
 write.csv(results4, file = "data/new_climate_data/europeData4_coords.csv", row.names = FALSE)
+
+#to import the data back into the right format
 df_results4 <- read.csv("data/new_climate_data/europeData4_coords.csv")
 
 results4 <- vector("list", length = 10)
 
 for (i in 0:9) {
-  # Column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
+  #column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
   suffix <- if (i == 0) "" else paste0(".", i)
   
   results4[[i + 1]] <- df_results4 |>
@@ -2023,15 +2063,15 @@ datetimes5 <- seq(start_time5, by = "hour", length.out = n_timepoints5)
 
 for (i in seq_along(list_coords)) {
 
-  # Convert the i-th coordinate into a single-point SpatVector (as matrix)
+  #convert the i-th coordinate into a single-point SpatVector (as matrix)
   coord_mat <- matrix(list_coords[[i]], nrow = 1)
   coords_sf <- vect(coord_mat, type = "points", crs = crs(data5))
   
-  # Extract temperature and precipitation
+  #extract temperature and precipitation
   temp_vals5 <- extract(temp_data5, coords_sf)[, -1]  # remove ID column
   precip_vals5 <- extract(precip_data5, coords_sf)[, -1]
   
-  # Create data frame for this location
+  #create data frame for this location
   df <- data.frame(
     Longitude = list_coords[[i]][1],
     Latitude = list_coords[[i]][2],
@@ -2040,7 +2080,7 @@ for (i in seq_along(list_coords)) {
     Precipitation = as.numeric(precip_vals5)
   )
   
-  # Save to list
+  #save to list
   results5[[i]] <- df
 }
 
@@ -2050,12 +2090,14 @@ for (i in seq_along(results5)) {
 }
 
 write.csv(results5, file = "data/new_climate_data/europeData5_coords.csv", row.names = FALSE)
+
+#to import the data back into the right format
 df_results5 <- read.csv("data/new_climate_data/europeData5_coords.csv")
 
 results5 <- vector("list", length = 10)
 
 for (i in 0:9) {
-  # Column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
+  #column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
   suffix <- if (i == 0) "" else paste0(".", i)
   
   results5[[i + 1]] <- df_results5 |>
@@ -2096,15 +2138,15 @@ datetimes6 <- seq(start_time6, by = "hour", length.out = n_timepoints6)
 
 for (i in seq_along(list_coords)) {
 
-  # Convert the i-th coordinate into a single-point SpatVector (as matrix)
+  #convert the i-th coordinate into a single-point SpatVector (as matrix)
   coord_mat <- matrix(list_coords[[i]], nrow = 1)
   coords_sf <- vect(coord_mat, type = "points", crs = crs(data6))
   
-  # Extract temperature and precipitation
+  #extract temperature and precipitation
   temp_vals6 <- extract(temp_data6, coords_sf)[, -1]  # remove ID column
   precip_vals6 <- extract(precip_data6, coords_sf)[, -1]
   
-  # Create data frame for this location
+  #create data frame for this location
   df <- data.frame(
     Longitude = list_coords[[i]][1],
     Latitude = list_coords[[i]][2],
@@ -2113,7 +2155,7 @@ for (i in seq_along(list_coords)) {
     Precipitation = as.numeric(precip_vals6)
   )
   
-  # Save to list
+  #save to list
   results6[[i]] <- df
 }
 
@@ -2123,12 +2165,14 @@ for (i in seq_along(results6)) {
 }
 
 write.csv(results6, file = "data/new_climate_data/europeData6_coords.csv", row.names = FALSE)
+
+#to import the data back into the right format
 df_results6 <- read.csv("data/new_climate_data/europeData6_coords.csv")
 
 results6 <- vector("list", length = 10)
 
 for (i in 0:9) {
-  # Column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
+  #column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
   suffix <- if (i == 0) "" else paste0(".", i)
   
   results6[[i + 1]] <- df_results6 |>
@@ -2169,15 +2213,15 @@ datetimes7 <- seq(start_time7, by = "hour", length.out = n_timepoints7)
 
 for (i in seq_along(list_coords)) {
 
-  # Convert the i-th coordinate into a single-point SpatVector (as matrix)
+  #convert the i-th coordinate into a single-point SpatVector (as matrix)
   coord_mat <- matrix(list_coords[[i]], nrow = 1)
   coords_sf <- vect(coord_mat, type = "points", crs = crs(data7))
   
-  # Extract temperature and precipitation
+  #extract temperature and precipitation
   temp_vals7 <- extract(temp_data7, coords_sf)[, -1]  # remove ID column
   precip_vals7 <- extract(precip_data7, coords_sf)[, -1]
   
-  # Create data frame for this location
+  #create data frame for this location
   df <- data.frame(
     Longitude = list_coords[[i]][1],
     Latitude = list_coords[[i]][2],
@@ -2186,7 +2230,7 @@ for (i in seq_along(list_coords)) {
     Precipitation = as.numeric(precip_vals7)
   )
   
-  # Save to list
+  #save to list
   results7[[i]] <- df
 }
 
@@ -2196,12 +2240,14 @@ for (i in seq_along(results7)) {
 }
 
 write.csv(results7, file = "data/new_climate_data/europeData7_coords.csv", row.names = FALSE)
+
+#to import the data back into the right format
 df_results7 <- read.csv("data/new_climate_data/europeData7_coords.csv")
 
 results7 <- vector("list", length = 10)
 
 for (i in 0:9) {
-  # Column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
+  #column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
   suffix <- if (i == 0) "" else paste0(".", i)
   
   results7[[i + 1]] <- df_results7 |>
@@ -2242,15 +2288,15 @@ datetimes8 <- seq(start_time8, by = "hour", length.out = n_timepoints8)
 
 for (i in seq_along(list_coords)) {
 
-  # Convert the i-th coordinate into a single-point SpatVector (as matrix)
+  #convert the i-th coordinate into a single-point SpatVector (as matrix)
   coord_mat <- matrix(list_coords[[i]], nrow = 1)
   coords_sf <- vect(coord_mat, type = "points", crs = crs(data8))
   
-  # Extract temperature and precipitation
+  #extract temperature and precipitation
   temp_vals8 <- extract(temp_data8, coords_sf)[, -1]  # remove ID column
   precip_vals8 <- extract(precip_data8, coords_sf)[, -1]
   
-  # Create data frame for this location
+  #create data frame for this location
   df <- data.frame(
     Longitude = list_coords[[i]][1],
     Latitude = list_coords[[i]][2],
@@ -2259,7 +2305,7 @@ for (i in seq_along(list_coords)) {
     Precipitation = as.numeric(precip_vals8)
   )
   
-  # Save to list
+  #save to list
   results8[[i]] <- df
 }
 
@@ -2269,12 +2315,14 @@ for (i in seq_along(results8)) {
 }
 
 write.csv(results8, file = "data/new_climate_data/europeData8_coords.csv", row.names = FALSE)
+
+#to import the data back into the right format
 df_results8 <- read.csv("data/new_climate_data/europeData8_coords.csv")
 
 results8 <- vector("list", length = 10)
 
 for (i in 0:9) {
-  # Column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
+  #column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
   suffix <- if (i == 0) "" else paste0(".", i)
   
   results8[[i + 1]] <- df_results8 |>
@@ -2315,15 +2363,15 @@ datetimes9 <- seq(start_time9, by = "hour", length.out = n_timepoints9)
 
 for (i in seq_along(list_coords)) {
 
-  # Convert the i-th coordinate into a single-point SpatVector (as matrix)
+  #convert the i-th coordinate into a single-point SpatVector (as matrix)
   coord_mat <- matrix(list_coords[[i]], nrow = 1)
   coords_sf <- vect(coord_mat, type = "points", crs = crs(data9))
   
-  # Extract temperature and precipitation
+  #extract temperature and precipitation
   temp_vals9 <- extract(temp_data9, coords_sf)[, -1]  # remove ID column
   precip_vals9 <- extract(precip_data9, coords_sf)[, -1]
   
-  # Create data frame for this location
+  #create data frame for this location
   df <- data.frame(
     Longitude = list_coords[[i]][1],
     Latitude = list_coords[[i]][2],
@@ -2332,7 +2380,7 @@ for (i in seq_along(list_coords)) {
     Precipitation = as.numeric(precip_vals9)
   )
   
-  # Save to list
+  #save to list
   results9[[i]] <- df
 }
 
@@ -2342,12 +2390,14 @@ for (i in seq_along(results9)) {
 }
 
 write.csv(results9, file = "data/new_climate_data/europeData9_coords.csv", row.names = FALSE)
+
+#to import the data back into the right format
 df_results9 <- read.csv("data/new_climate_data/europeData9_coords.csv")
 
 results9 <- vector("list", length = 10)
 
 for (i in 0:9) {
-  # Column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
+  #column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
   suffix <- if (i == 0) "" else paste0(".", i)
   
   results9[[i + 1]] <- df_results9 |>
@@ -2388,15 +2438,15 @@ datetimes10 <- seq(start_time10, by = "hour", length.out = n_timepoints10)
 
 for (i in seq_along(list_coords)) {
 
-  # Convert the i-th coordinate into a single-point SpatVector (as matrix)
+  #convert the i-th coordinate into a single-point SpatVector (as matrix)
   coord_mat <- matrix(list_coords[[i]], nrow = 1)
   coords_sf <- vect(coord_mat, type = "points", crs = crs(data10))
   
-  # Extract temperature and precipitation
+  #extract temperature and precipitation
   temp_vals10 <- extract(temp_data10, coords_sf)[, -1]  # remove ID column
   precip_vals10 <- extract(precip_data10, coords_sf)[, -1]
   
-  # Create data frame for this location
+  #create data frame for this location
   df <- data.frame(
     Longitude = list_coords[[i]][1],
     Latitude = list_coords[[i]][2],
@@ -2405,7 +2455,7 @@ for (i in seq_along(list_coords)) {
     Precipitation = as.numeric(precip_vals10)
   )
   
-  # Save to list
+  #save to list
   results10[[i]] <- df
 }
 
@@ -2415,12 +2465,14 @@ for (i in seq_along(results10)) {
 }
 
 write.csv(results10, file = "data/new_climate_data/europeData10_coords.csv", row.names = FALSE)
+
+#to import the data back into the right format
 df_results10 <- read.csv("data/new_climate_data/europeData10_coords.csv")
 
 results10 <- vector("list", length = 10)
 
 for (i in 0:9) {
-  # Column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
+  #column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
   suffix <- if (i == 0) "" else paste0(".", i)
   
   results10[[i + 1]] <- df_results10 |>
@@ -2461,15 +2513,15 @@ datetimes11 <- seq(start_time11, by = "hour", length.out = n_timepoints11)
 
 for (i in seq_along(list_coords)) {
 
-  # Convert the i-th coordinate into a single-point SpatVector (as matrix)
+  #convert the i-th coordinate into a single-point SpatVector (as matrix)
   coord_mat <- matrix(list_coords[[i]], nrow = 1)
   coords_sf <- vect(coord_mat, type = "points", crs = crs(data11))
   
-  # Extract temperature and precipitation
+  #extract temperature and precipitation
   temp_vals11 <- extract(temp_data11, coords_sf)[, -1]  # remove ID column
   precip_vals11 <- extract(precip_data11, coords_sf)[, -1]
   
-  # Create data frame for this location
+  #create data frame for this location
   df <- data.frame(
     Longitude = list_coords[[i]][1],
     Latitude = list_coords[[i]][2],
@@ -2478,7 +2530,7 @@ for (i in seq_along(list_coords)) {
     Precipitation = as.numeric(precip_vals11)
   )
   
-  # Save to list
+  #save to list
   results11[[i]] <- df
 }
 
@@ -2488,12 +2540,14 @@ for (i in seq_along(results11)) {
 }
 
 write.csv(results11, file = "data/new_climate_data/europeData11_coords.csv", row.names = FALSE)
+
+#to import the data back into the right format
 df_results11 <- read.csv("data/new_climate_data/europeData11_coords.csv")
 
 results11 <- vector("list", length = 10)
 
 for (i in 0:9) {
-  # Column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
+  #column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
   suffix <- if (i == 0) "" else paste0(".", i)
   
   results11[[i + 1]] <- df_results11 |>
@@ -2534,15 +2588,15 @@ datetimes12 <- seq(start_time12, by = "hour", length.out = n_timepoints12)
 
 for (i in seq_along(list_coords)) {
 
-  # Convert the i-th coordinate into a single-point SpatVector (as matrix)
+  #convert the i-th coordinate into a single-point SpatVector (as matrix)
   coord_mat <- matrix(list_coords[[i]], nrow = 1)
   coords_sf <- vect(coord_mat, type = "points", crs = crs(data12))
   
-  # Extract temperature and precipitation
+  #extract temperature and precipitation
   temp_vals12 <- extract(temp_data12, coords_sf)[, -1]  # remove ID column
   precip_vals12 <- extract(precip_data12, coords_sf)[, -1]
   
-  # Create data frame for this location
+  #create data frame for this location
   df <- data.frame(
     Longitude = list_coords[[i]][1],
     Latitude = list_coords[[i]][2],
@@ -2551,7 +2605,7 @@ for (i in seq_along(list_coords)) {
     Precipitation = as.numeric(precip_vals12)
   )
   
-  # Save to list
+  #save to list
   results12[[i]] <- df
 }
 
@@ -2561,12 +2615,14 @@ for (i in seq_along(results12)) {
 }
 
 write.csv(results12, file = "data/new_climate_data/europeData12_coords.csv", row.names = FALSE)
+
+#to import the data back into the right format
 df_results12 <- read.csv("data/new_climate_data/europeData12_coords.csv")
 
 results12 <- vector("list", length = 10)
 
 for (i in 0:9) {
-  # Column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
+  #column suffix: "" for site 1, ".1" for site 2, ..., ".9" for site 10
   suffix <- if (i == 0) "" else paste0(".", i)
   
   results12[[i + 1]] <- df_results12 |>

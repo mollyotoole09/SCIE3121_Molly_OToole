@@ -10,18 +10,24 @@ pdat <- read_csv("data/new_climate_data/pdat.csv")
 panel1 <- feols(growth_rate ~ logval_prev | TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
 summary(panel1)
 
+#plot of density dependence
 plot_density2 <- ggplot(pdat, aes(x = logval_prev, y = growth_rate)) + 
     geom_point() + 
     geom_smooth(method = "lm") + 
-    labs(x = "log(Abundance in year t - 1)", y = "log(Growth Rate in year t)", title = "Density Dependence - Analysis 2")
+    labs(x = "log(abundance in year t - 1)", y = "log(growth rate in year t)") + 
+    theme(
+        axis.title.x = element_text(size = 20),  
+        axis.title.y = element_text(size = 20),  
+    )
 
 plot_density2
-ggsave(filename = "results/Plot_DensityDependence2.pdf", plot = plot_density2)
+ggsave(filename = "results/Plot_DensityDependence2.png", plot = plot_density2, width = 8, height = 10)
 
 #regression 2: add avg yearly temperature and total yearly precipitation
 panel2 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev | TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
 summary(panel2)
 
+#plot the variables
 predicts2 <- all.vars(formula(panel2))[-1]
 
 plots2 <- map(predicts2, ~ {
@@ -39,6 +45,7 @@ panel2Plots
 panel3 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTemp_prev + extPrecip_prev | TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
 summary(panel3)
 
+#plot the variables
 predicts3 <- all.vars(formula(panel3))[-1]
 
 plots3 <- map(predicts3, ~ {
@@ -56,6 +63,7 @@ panel3Plots
 panel4 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTemp_prev + extPrecip_prev + extTemp_prev:Latitude + extTemp_prev:extPrecip_prev| TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
 summary(panel4)
 
+#plot the variables
 plot_labels <- c(
   logval_prev = "log(Abundance)",
   temp_prev = "Average annual temperature (ºC)",
@@ -77,7 +85,7 @@ plots4 <- map(predicts4, ~ {
 panel4Plots <- plot_grid(plots4[[2]], plots4[[3]], plots4[[4]], plots4[[5]], nrow = 2, ncol = 2, labels = c("A", "B", "C", "D"))
 panel4Plots
 
-ggsave(filename = "results/Plots_analysis2.pdf", plot = panel4Plots)
+ggsave(filename = "results/Plots_analysis2.png", plot = panel4Plots)
 
 #regression 5: filter only for the values that explain a significant amount of variation - logval_prev, temp_prev, extTemp_prev, extTemp_prev:Latitude
 panel5 <- feols(growth_rate ~ logval_prev + extTemp_prev + extTemp_prev:Latitude | TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
@@ -91,7 +99,7 @@ ggplot(pdat) +
   labs(color = "Latitude") +
   theme_minimal()
 
-#separate populations 
+#separate populations - interaction
 ggplot(pdat, aes(extTemp_prev, growth_rate)) +
   geom_point(aes(color = Latitude)) +
   geom_smooth(method = "lm", se = FALSE, color = "black") +
@@ -101,12 +109,48 @@ ggplot(pdat, aes(extTemp_prev, growth_rate)) +
 
 AIC(panel1, panel2, panel3, panel4, panel5)
 
+#model 5 is the best
+
 capture.output(panel1, file = "results/panel1.txt")
 capture.output(panel2, file = "results/panel2.txt")
 capture.output(panel3, file = "results/panel3.txt")
 capture.output(panel4, file = "results/panel4.txt")
 capture.output(panel5, file = "results/panel5.txt")
 
+#Extension - regression for slope coefficients of each indivdiual population vs latitude 
+
+#select individual regression slope estimates
+slopeReg <- data.table()
+
+for (i in longest_ids) {
+    data <- filter(pdat, TimeSeriesID == i)
+    reg <- lm(growth_rate ~ extTemp_prev, data = data)
+    coeffs <- coef(reg)
+    est <- coeffs[["extTemp_prev"]]
+    lat <- data$Latitude[1]
+
+    df <- data.table(Latitude = lat, Slope = est)
+
+    slopeReg <- bind_rows(slopeReg, df)
+
+}
+
+#check lm
+slopelm <- lm(Slope ~ Latitude, data = slopeReg)
+summary(slopelm)
+
+#plot 
+latplot <- ggplot(data = slopeReg) + 
+            geom_point(aes(x = Latitude, y = Slope), size = 3) + 
+            geom_smooth(aes(x = Latitude, y = Slope), method = "lm") + 
+            geom_hline(yintercept = 0, linetype = "dashed", colour = "red") + 
+            labs(x = "Latitude", y = "Effect of heatwaves (regression slope for each population)") + 
+            theme(
+                axis.title.x = element_text(size = 20),  
+                axis.title.y = element_text(size = 20),  
+            )
+
+ggsave(filename = "results/interaction_plot.png", plot = latplot, width = 8, height = 10)
 
 #panel 2 - 99% threshold for heatwaves and precipitation
 pdat2 <- read_csv("data/new_climate_data/pdat2.csv")
@@ -119,6 +163,7 @@ summary(panel1_99)
 panel2_99 <- feols(growth_rate ~ logval_prev + temp_prev + preip_prev + extTemp_prev + extPrecip_prev | TimeSeriesID, data = pdat2, panel.id=~TimeSeriesID+Year)
 summary(panel2_99)
 
+#plot the variables
 predicts2_99 <- all.vars(formula(panel2_99))[-1]
 
 plots2_99 <- map(predicts2_99, ~ {
@@ -141,6 +186,7 @@ summary(panel3_99)
 panel4_99 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTemp_prev + extPrecip_prev + extTemp_prev:Latitude + extTemp_prev:extPrecip_prev | TimeSeriesID, data = pdat2, panel.id=~TimeSeriesID+Year)
 summary(panel4_99)
 
+#plot the variables
 predicts4_99 <- all.vars(formula(panel4_99))[-1]
 
 plots4_99 <- map(predicts4_99, ~ {
@@ -155,6 +201,8 @@ panel4_99Plots <- plot_grid(plots1_99[[2]], plots1_99[[3]], plots2_99[[4]], plot
 panel4_99Plots
 
 AIC(panel1_99, panel2_99, panel3_99, panel4_99)
+
+#model 1 is the best
 
 capture.output(panel1_99, file = "results/panel1_99.txt")
 capture.output(panel2_99, file = "results/panel2_99.txt")

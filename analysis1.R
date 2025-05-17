@@ -8,6 +8,7 @@ heatwaveRegression <- read_csv("data/heatwaveRegression.csv")
 heatwavelm <- lm(growth_rate ~ logval_prev + avgTemp_prev + heatwaves_prev + year, data = heatwaveRegression)
 summary(heatwavelm)
 
+#plot the variables
 predictors <- all.vars(formula(heatwavelm))[-1]
 
 plots <- map(predictors, ~ {
@@ -25,6 +26,7 @@ precipRegression <- read_csv("data/precipRegression.csv")
 preciplm <- lm(growth_rate ~ logval_prev + totalPrecip_prev + precip_prev + year, data = precipRegression)
 summary(preciplm)
 
+#plot the variables
 predictors <- all.vars(formula(preciplm))[-1]
 
 plots <- map(predictors, ~ {
@@ -55,6 +57,7 @@ summary(combinedlm3)
 combinedlm4 <- lm(growth_rate ~ logval_prev + avgTemp_prev + totalPrecip_prev + heatwaves_prev + precip_prev + heatwaves_prev:precip_prev + year, data = combinedRegression)
 summary(combinedlm4)
 
+#plot the variables
 plot_labels <- c(
   logval_prev = "log(Abundance)",
   avgTemp_prev = "Average annual temperature (ºC)",
@@ -78,6 +81,7 @@ combinedRegressionPlots
 
 ggsave(filename = "results/Plots_analysis1.pdf", plot = combinedRegressionPlots)
 
+#density dependence plot
 plot_density1 <- ggplot(combinedRegression, aes(x = logval_prev, y = growth_rate)) + 
     geom_point() + 
     geom_smooth(method = "lm") + 
