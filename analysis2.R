@@ -13,15 +13,17 @@ summary(panel1)
 #plot of density dependence
 plot_density2 <- ggplot(pdat, aes(x = logval_prev, y = growth_rate)) + 
     geom_point() + 
-    geom_smooth(method = "lm") + 
-    labs(x = "log(abundance in year t - 1)", y = "log(growth rate in year t)") + 
-    theme(
-        axis.title.x = element_text(size = 20),  
-        axis.title.y = element_text(size = 20),  
-    )
+    geom_smooth(method = "lm", color = "dodgerblue", fill = "dodgerblue", alpha = 0.3, size = 2) + 
+    geom_hline(yintercept = 0, linetype = "dashed", colour = "red") + 
+    labs(x = "log(abundance in year t - 1)", y = "Growth rate in year t") + 
+    theme_bw() + 
+    theme(panel.grid = element_blank(), 
+          axis.title.x = element_text(size = 20),  
+          axis.title.y = element_text(size = 20), 
+          axis.text = element_text(size = 14, face = "bold"))
 
 plot_density2
-ggsave(filename = "results/Plot_DensityDependence2.png", plot = plot_density2, width = 8, height = 10)
+ggsave(filename = "results/Plot_DensityDependence2.png", plot = plot_density2, width = 10, height = 10)
 
 #regression 2: add avg yearly temperature and total yearly precipitation
 panel2 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev | TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
@@ -142,15 +144,18 @@ summary(slopelm)
 #plot 
 latplot <- ggplot(data = slopeReg) + 
             geom_point(aes(x = Latitude, y = Slope), size = 3) + 
-            geom_smooth(aes(x = Latitude, y = Slope), method = "lm") + 
+            geom_smooth(aes(x = Latitude, y = Slope), method = "lm", colour = "dodgerblue", fill = "dodgerblue", alpha = 0.3, size = 2) + 
             geom_hline(yintercept = 0, linetype = "dashed", colour = "red") + 
-            labs(x = "Latitude", y = "Effect of heatwaves (regression slope for each population)") + 
-            theme(
+            labs(x = "Latitude", y = "Effect of heatwaves on population growth rate (regression slope for each population)") + 
+            theme_bw() + 
+            theme(panel.grid = element_blank(), 
                 axis.title.x = element_text(size = 20),  
-                axis.title.y = element_text(size = 20),  
-            )
+                axis.title.y = element_text(size = 15), 
+                axis.text = element_text(size = 14, face = "bold"))
 
-ggsave(filename = "results/interaction_plot.png", plot = latplot, width = 8, height = 10)
+latplot
+
+ggsave(filename = "results/interaction_plot.png", plot = latplot, width = 10, height = 10)
 
 #panel 2 - 99% threshold for heatwaves and precipitation
 pdat2 <- read_csv("data/new_climate_data/pdat2.csv")

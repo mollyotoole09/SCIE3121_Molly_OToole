@@ -1680,6 +1680,44 @@ salmoHeatwavePlot <- ggplot(data = salmoDataTable) +
 
 ggsave(filename = "results/abundancevheatwavesplot.png", plot = salmoHeatwavePlot, height = 10, width = 8)
 
+salmoPlot <- ggplot(data = salmoDataTable) + 
+  geom_point(aes(x = year, y = Abundance), colour = "black", size = 2) + 
+  geom_line(aes(x = year, y = Abundance), colour = "black", size = 1) + 
+  labs(x = "Year", y = "Abundance") + 
+  theme_bw() + 
+  theme(panel.grid = element_blank(), 
+        axis.title.x = element_text(size = 20),  
+        axis.title.y = element_text(size = 20), 
+        axis.text = element_text(size = 14, face = "bold"))
+
+ggsave(filename = "plots/abundanceplot.png", plot = salmoPlot, height = 10, width = 7)
+
+extremesPlot <- ggplot() + 
+  geom_point(data = thrs95exceeded_heatwaves, 
+             aes(x = year, y = daysExceeded), colour = "#840f0f", size = 2, show.legend = FALSE) + 
+  geom_line(data = thrs95exceeded_heatwaves, 
+            aes(x = year, y = daysExceeded, colour = "Heatwaves"), size = 1) + 
+  
+  geom_point(data = thrs95exceeded_precip, 
+             aes(x = year, y = daysExceeded_precip), colour = "#0a60b7", size = 2, show.legend = FALSE) + 
+  geom_line(data = thrs95exceeded_precip, 
+            aes(x = year, y = daysExceeded_precip, colour = "Precipitation"), size = 1) + 
+  
+  scale_colour_manual(values = c("Heatwaves" = "firebrick", "Precipitation" = "dodgerblue")) + 
+
+  labs(x = "Year", y = "Number of days exceeding 95% threshold", colour = "Extreme Event") + 
+  
+  theme_bw() + 
+  theme(panel.grid = element_blank(), 
+        axis.title.x = element_text(size = 20),  
+        axis.title.y = element_text(size = 20), 
+        axis.text = element_text(size = 14, face = "bold"),
+        legend.title = element_text(size = 16, face = "bold"),
+        legend.text = element_text(size = 14))
+
+ggsave(filename = "plots/extreme_events_plot.png", plot = extremesPlot, height = 10, width = 8)
+
+
 
 ##2/05 - Extension: 10 populations of salmo trutta at different latitudes ---- 
 ##upload studies with salmo trutta records >5 years 
