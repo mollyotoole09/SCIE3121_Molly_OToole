@@ -16,14 +16,17 @@ plot_density2 <- ggplot(pdat, aes(x = logval_prev, y = growth_rate)) +
     geom_smooth(method = "lm", color = "dodgerblue", fill = "dodgerblue", alpha = 0.3, size = 2) + 
     geom_hline(yintercept = 0, linetype = "dashed", colour = "red") + 
     labs(x = "log(abundance in year t - 1)", y = "Growth rate in year t") + 
+    plot_annotation(title = "Density dependence: Growth rate decreases when abundance is large", 
+                    theme = theme(plot.title = element_text(size = 15, face = "bold", hjust = 0.5))) +
     theme_bw() + 
     theme(panel.grid = element_blank(), 
           axis.title.x = element_text(size = 20),  
           axis.title.y = element_text(size = 20), 
-          axis.text = element_text(size = 14, face = "bold"))
+          axis.text = element_text(size = 14, face = "bold"))+ 
+    ylim(-2,2)
 
 plot_density2
-ggsave(filename = "results/Plot_DensityDependence2.png", plot = plot_density2, width = 10, height = 10)
+ggsave(filename = "results/Plot_DensityDependence2.png", plot = plot_density2, width = 10, height = 7)
 
 #regression 2: add avg yearly temperature and total yearly precipitation
 panel2 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev | TimeSeriesID, data = pdat, panel.id=~TimeSeriesID+Year)
@@ -144,18 +147,23 @@ summary(slopelm)
 #plot 
 latplot <- ggplot(data = slopeReg) + 
             geom_point(aes(x = Latitude, y = Slope), size = 3) + 
+            geom_point(aes(x = Latitude, y = Slope), data = subset(slopeReg, Latitude == "58.90116"), colour = "firebrick", size = 4) + 
+            geom_text(aes(x = Latitude, y = Slope, label = "G11473"), data = subset(slopeReg, Latitude == "58.90116"),hjust = -0.25, fontface = "bold", size = 6) + 
+            scale_x_continuous(breaks = seq(from = 40, to = 70, by = 5)) +
             geom_smooth(aes(x = Latitude, y = Slope), method = "lm", colour = "dodgerblue", fill = "dodgerblue", alpha = 0.3, size = 2) + 
             geom_hline(yintercept = 0, linetype = "dashed", colour = "red") + 
-            labs(x = "Latitude", y = "Effect of heatwaves on population growth rate (regression slope for each population)") + 
+            labs(x = "Latitude", y = "Effect of heatwaves on population growth rate\n(regression slope for each population)") + 
             theme_bw() + 
+            plot_annotation(title = "Heatwaves are worse at higher latitudes", 
+                            theme = theme(plot.title = element_text(size = 15, face = "bold", hjust = 0.5))) + 
             theme(panel.grid = element_blank(), 
                 axis.title.x = element_text(size = 20),  
-                axis.title.y = element_text(size = 15), 
-                axis.text = element_text(size = 14, face = "bold"))
+                axis.title.y = element_text(size = 20), 
+                axis.text = element_text(size = 18, face = "bold"))
 
 latplot
 
-ggsave(filename = "results/interaction_plot.png", plot = latplot, width = 10, height = 10)
+ggsave(filename = "results/interaction_plot.png", plot = latplot, width = 10, height = 7)
 
 #panel 2 - 99% threshold for heatwaves and precipitation
 pdat2 <- read_csv("data/new_climate_data/pdat2.csv")
@@ -165,7 +173,7 @@ panel1_99 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev | TimeSer
 summary(panel1_99)
 
 #regression 2: extreme temperature and precipitation events
-panel2_99 <- feols(growth_rate ~ logval_prev + temp_prev + preip_prev + extTemp_prev + extPrecip_prev | TimeSeriesID, data = pdat2, panel.id=~TimeSeriesID+Year)
+panel2_99 <- feols(growth_rate ~ logval_prev + temp_prev + precip_prev + extTemp_prev + extPrecip_prev | TimeSeriesID, data = pdat2, panel.id=~TimeSeriesID+Year)
 summary(panel2_99)
 
 #plot the variables

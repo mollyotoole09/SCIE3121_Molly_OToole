@@ -1687,10 +1687,10 @@ salmoPlot <- ggplot(data = salmoDataTable) +
   theme_bw() + 
   theme(panel.grid = element_blank(), 
         axis.title.x = element_text(size = 20),  
-        axis.title.y = element_text(size = 20), 
+        axis.title.y = element_text(size = 15), 
         axis.text = element_text(size = 14, face = "bold"))
 
-ggsave(filename = "plots/abundanceplot.png", plot = salmoPlot, height = 10, width = 7)
+ggsave(filename = "plots/abundanceplot.png", plot = salmoPlot, height = 6, width = 10)
 
 extremesPlot <- ggplot() + 
   geom_point(data = thrs95exceeded_heatwaves, 
@@ -1705,18 +1705,29 @@ extremesPlot <- ggplot() +
   
   scale_colour_manual(values = c("Heatwaves" = "firebrick", "Precipitation" = "dodgerblue")) + 
 
-  labs(x = "Year", y = "Number of days exceeding 95% threshold", colour = "Extreme Event") + 
+  labs(x = "Year", y = "Number of days exceeding\n95% threshold", colour = "Extreme Event") + 
   
   theme_bw() + 
   theme(panel.grid = element_blank(), 
         axis.title.x = element_text(size = 20),  
-        axis.title.y = element_text(size = 20), 
+        axis.title.y = element_text(size = 15), 
         axis.text = element_text(size = 14, face = "bold"),
         legend.title = element_text(size = 16, face = "bold"),
         legend.text = element_text(size = 14))
 
-ggsave(filename = "plots/extreme_events_plot.png", plot = extremesPlot, height = 10, width = 8)
+ggsave(filename = "plots/extreme_events_plot.png", plot = extremesPlot, height = 6, width = 10)
 
+library(patchwork)
+salmoPlot <- salmoPlot + theme(axis.title.x = element_blank(),
+                                axis.text.x = element_blank(),
+                                axis.ticks.x = element_blank()) 
+
+combinedPlot <- salmoPlot / extremesPlot + plot_layout(ncol = 1) + 
+                                           plot_annotation(title = "Combination of biological and climatological time series data for population G11473 ", 
+                                                           theme = theme(plot.title = element_text(size = 15, face = "bold", hjust = 0.5)))
+combinedPlot
+
+ggsave(filename = "plots/combined.png", plot = combinedPlot, height = 7, width = 10)
 
 
 ##2/05 - Extension: 10 populations of salmo trutta at different latitudes ---- 
@@ -3154,3 +3165,25 @@ plots <- map(predicts, ~ {
 
 AIC(panel1_int, panel2_int)
 AIC(panel3_int, panel4_int)
+
+
+
+### 
+
+plot_list <- list()
+
+for (i in longest_ids) {
+  data <- filter(pdat, TimeSeriesID == i)
+  p <- ggplot(data) + 
+    geom_point(aes(x = Year, y = extTemp_prev)) + 
+    geom_line(aes(x = Year, y = extTemp_prev)) +
+    geom_smooth(aes(x = Year, y = extTemp_prev), method = "lm") + 
+    labs(title = paste("Time Series:", i)) +
+    theme_minimal()
+  
+  plot_list[[i]] <- p 
+}
+
+all_plots <- wrap_plots(plot_list, ncol = 2)  
+all_plots
+
