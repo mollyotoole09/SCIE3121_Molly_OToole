@@ -3166,24 +3166,3 @@ plots <- map(predicts, ~ {
 AIC(panel1_int, panel2_int)
 AIC(panel3_int, panel4_int)
 
-
-
-### 
-
-plot_list <- list()
-
-for (i in longest_ids) {
-  data <- filter(pdat, TimeSeriesID == i)
-  p <- ggplot(data) + 
-    geom_point(aes(x = Year, y = extTemp_prev)) + 
-    geom_line(aes(x = Year, y = extTemp_prev)) +
-    geom_smooth(aes(x = Year, y = extTemp_prev), method = "lm") + 
-    labs(title = paste("Time Series:", i)) +
-    theme_minimal()
-  
-  plot_list[[i]] <- p 
-}
-
-all_plots <- wrap_plots(plot_list, ncol = 2)  
-all_plots
-
